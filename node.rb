@@ -1,6 +1,21 @@
+require 'socket'
+
 $port = nil
 $hostname = nil
+$server = nil
+$listenThread = nil
 
+# ----------------- PROJECT OBJECTS ---------------- # 
+
+class header
+	attr_accessor: hdr_sz #header size
+	attr_accessor: pyld_sz #payload size
+	attr_accessor: src_nd #source node
+	attr_accessor: dst_nd #destination node
+	attr_accessor: pkt_id #pkt id
+	attr_accessor: msg_lngth #source node
+	
+end
 
 
 # --------------------- Part 0 --------------------- # 
@@ -10,7 +25,7 @@ def edgeb(cmd)
 end
 
 def dumptable(cmd)
-	STDOUT.puts "DUMPTABLE: not implemented"
+	puts "DUMPTABLE: not implemented"
 end
 
 def shutdown(cmd)
@@ -51,16 +66,47 @@ def ftp(cmd)
 	STDOUT.puts "FTP: not implemented"
 end
 
-# --------------------- Part 3 --------------------- # 
-def circuit(cmd)
-	STDOUT.puts "CIRCUIT: not implemented"
+
+def listenLoop()
+
+
+
 end
 
+# Header Creator
+#
+#
+#
 
+# Packet Creator
+#
+#
+#
 
+# Header Parser
+#
+#
+#
+def header_parser( headerString )
 
-# do main loop here.... 
-def main()
+end
+
+# Packet Parser
+#
+#
+#
+
+# Listener Loop
+#
+#	Listens on the current node's port, parsing headers
+#	from incoming connections, updating distance tables,
+#	<more tbd>
+
+# Command Loop
+#
+#	Loop that reads STDIN for input, and operates
+#	the given user command on this node.
+def command_loop()
 
 	while(line = STDIN.gets())
 		line = line.strip()
@@ -78,7 +124,6 @@ def main()
 		when "PING"; ping(args)
 		when "TRACEROUTE"; traceroute(args)
 		when "FTP"; ftp(args)
-		when "CIRCUIT"; circuit(args)
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
@@ -89,15 +134,16 @@ def setup(hostname, port, nodes, config)
 	$hostname = hostname
 	$port = port
 
-	#set up ports, server, buffers
+	server = TCPServer.new $port		
 
-	main()
+	commandThread = Thread.new do
+		command_loop()
+	end
+	
+	connectionListener = Thread.new do
+		
+		
 
 end
 
 setup(ARGV[0], ARGV[1], ARGV[2], ARGV[3])
-
-
-
-
-
