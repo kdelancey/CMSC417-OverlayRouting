@@ -7,14 +7,22 @@ $listenThread = nil
 
 # ----------------- PROJECT OBJECTS ---------------- # 
 
-class header
-	attr_accessor: hdr_sz #header size
-	attr_accessor: pyld_sz #payload size
-	attr_accessor: src_nd #source node
-	attr_accessor: dst_nd #destination node
-	attr_accessor: pkt_id #pkt id
-	attr_accessor: msg_lngth #source node
-	
+class Header
+	attr_accessor: hdr_sz 		# header size
+	attr_accessor: pyld_sz 		# payload size
+	attr_accessor: src_nd 		# source node
+	attr_accessor: dst_nd 		# destination node
+	attr_accessor: pkt_id 		# packet id
+	attr_accessor: msg_lngth 	# source node
+end
+
+class Node
+	attr_accessor: hostname		# name of node
+	attr_accessor: port_no		# port number node should listen on
+	attr_accessor: update_int	# how often routing updates should occur (secs)
+	attr_accessor: max_pyld		# maximum payload size for a message (bytes)
+	attr_accessor: ping_timeout	# how long a node should wait for a reply
+	attr_accessor: node_lst		# list that stores other nodes and their ports
 end
 
 
@@ -30,9 +38,10 @@ end
 
 def shutdown(cmd)
 	STDOUT.puts "SHUTDOWN: not implemented"
+	STDOUT.flush
+	STDERR.flush
 	exit(0)
 end
-
 
 
 # --------------------- Part 1 --------------------- # 
@@ -40,8 +49,8 @@ def edged(cmd)
 	STDOUT.puts "EDGED: not implemented"
 end
 
-def edgew(cmd)
-	STDOUT.puts "EDGEW: not implemented"
+def edgeu(cmd)
+	STDOUT.puts "EDGEU: not implemented"
 end
 
 def status()
@@ -67,11 +76,19 @@ def ftp(cmd)
 end
 
 
-def listenLoop()
-
-
-
+# --------------------- Part 3 --------------------- # 
+def circuitb(cmd)
+	STDOUT.puts "CIRCUITB: not implemented"
 end
+
+def circuitm(cmd)
+	STDOUT.puts "CIRCUITM: not implemented"
+end
+
+def circuitd(cmd)
+	STDOUT.puts "CIRCUITD: not implemented"
+end
+
 
 # Header Creator
 #
@@ -87,6 +104,7 @@ end
 #
 #
 #
+
 def header_parser( headerString )
 
 end
@@ -102,12 +120,16 @@ end
 #	from incoming connections, updating distance tables,
 #	<more tbd>
 
+def listenLoop()
+
+end
+
 # Command Loop
 #
 #	Loop that reads STDIN for input, and operates
 #	the given user command on this node.
-def command_loop()
 
+def command_loop()
 	while(line = STDIN.gets())
 		line = line.strip()
 		arr = line.split(' ')
@@ -116,7 +138,7 @@ def command_loop()
 		case cmd
 		when "EDGEB"; edgeb(args)
 		when "EDGED"; edged(args)
-		when "EDGEW"; edgew(args)
+		when "EDGEU"; edgew(args)
 		when "DUMPTABLE"; dumptable(args)
 		when "SHUTDOWN"; shutdown(args)
 		when "STATUS"; status()
@@ -124,10 +146,12 @@ def command_loop()
 		when "PING"; ping(args)
 		when "TRACEROUTE"; traceroute(args)
 		when "FTP"; ftp(args)
+		when "CIRCUITB"; circuitb(args)
+		when "CIRCUITM"; circuitm(args)
+		when "CIRCUITD"; circuitd(args)
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
-
 end
 
 def setup(hostname, port, nodes, config)
@@ -141,9 +165,8 @@ def setup(hostname, port, nodes, config)
 	end
 	
 	connectionListener = Thread.new do
-		
-		
 
+	end
 end
 
 setup(ARGV[0], ARGV[1], ARGV[2], ARGV[3])
