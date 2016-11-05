@@ -1,4 +1,5 @@
 require 'socket'
+require 'utility'
 
 $port = nil
 $hostname = nil
@@ -13,16 +14,18 @@ class Header
 	attr_accessor: src_nd 		# source node
 	attr_accessor: dst_nd 		# destination node
 	attr_accessor: pkt_id 		# packet id
-	attr_accessor: msg_lngth 	# source node
+	attr_accessor: msg_lngth 	# message length
 end
 
 class Node
 	attr_accessor: hostname		# name of node
-	attr_accessor: port_no		# port number node should listen on
-	attr_accessor: update_int	# how often routing updates should occur (secs)
+	attr_accessor: port				# port number this node should listen on
+	attr_accessor: nodes_map	# map of nodes and their ports
+	attr_accessor: update_int	# how often routing updates occur (secs)
 	attr_accessor: max_pyld		# maximum payload size for a message (bytes)
-	attr_accessor: ping_timeout	# how long a node should wait for a reply
-	attr_accessor: node_lst		# list that stores other nodes and their ports
+	attr_accessor: timeout 		# how long it should wait for a reply (secs)
+	attr_accessor: node_time	# internal clock of node
+	attr_accessor: rt_table		# routing table for this node
 end
 
 
@@ -33,11 +36,10 @@ def edgeb(cmd)
 end
 
 def dumptable(cmd)
-	puts "DUMPTABLE: not implemented"
+	STDOUT.puts "DUMPTABLE: not implemented"
 end
 
 def shutdown(cmd)
-	STDOUT.puts "SHUTDOWN: not implemented"
 	STDOUT.flush
 	STDERR.flush
 	exit(0)
@@ -45,6 +47,7 @@ end
 
 
 # --------------------- Part 1 --------------------- # 
+
 def edged(cmd)
 	STDOUT.puts "EDGED: not implemented"
 end
@@ -59,6 +62,7 @@ end
 
 
 # --------------------- Part 2 --------------------- # 
+
 def sendmsg(cmd)
 	STDOUT.puts "SENDMSG: not implemented"
 end
@@ -77,6 +81,7 @@ end
 
 
 # --------------------- Part 3 --------------------- # 
+
 def circuitb(cmd)
 	STDOUT.puts "CIRCUITB: not implemented"
 end
@@ -129,7 +134,7 @@ end
 #	Loop that reads STDIN for input, and operates
 #	the given user command on this node.
 
-def command_loop()
+def commands()
 	while(line = STDIN.gets())
 		line = line.strip()
 		arr = line.split(' ')
@@ -154,18 +159,21 @@ def command_loop()
 	end
 end
 
-def setup(hostname, port, nodes, config)
-	$hostname = hostname
-	$port = port
+def setup(hostnm, port, nodes, config)
+	hostname = Node.new
+	hostname.hostname = hostnm
+	hostname.port = port
+	hostname.nodes_map = Utility.read_nodes(nodes)
+
+	config_options = Utility.read_config(config)
+	hostname.update_int = config_options['updateInterval'].to_i
+	hostname.max_pyld = config_options['maxPayload'].to_i
+	hostname.timeout = config_options['pingTimeout'].to_i
 
 	server = TCPServer.new $port		
 
-	commandThread = Thread.new do
-		command_loop()
-	end
-	
-	connectionListener = Thread.new do
-
+	loop do
+		commands
 	end
 end
 
