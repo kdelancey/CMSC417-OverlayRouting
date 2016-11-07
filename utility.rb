@@ -32,7 +32,14 @@ class Utility
 		nodes_map
 	end
 
+	# ====================================================================
+	# Writes routing data to filename. If filename already exists, it
+	# will be overwritten with the new routing data
+	# ====================================================================
 	def self.dump_table(filename)
-		
+		routing_data = nil
+		File.open("#{filename}",'w') { |file|
+			file.write(routing_data)
+		}
 	end
 end

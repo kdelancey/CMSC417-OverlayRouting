@@ -25,7 +25,6 @@ end
 
 def dumptable(filename)
 	Utility.dump_table(filename)
-	STDOUT.puts "DUMPTABLE: not implemented"
 end
 
 def shutdown()
@@ -84,40 +83,6 @@ def circuitd(cmd)
 end
 
 
-# Header Creator
-#
-#
-#
-
-# Packet Creator
-#
-#
-#
-
-# Header Parser
-#
-#
-#
-
-def header_parser( headerString )
-
-end
-
-# Packet Parser
-#
-#
-#
-
-# Listener Loop
-#
-#	Listens on the current node's port, parsing headers
-#	from incoming connections, updating distance tables,
-#	<more tbd>
-
-def listenLoop()
-
-end
-
 # ====================================================================
 # Reads STDIN for input and operates the given user command for this
 # node
@@ -160,8 +125,8 @@ def setup(hostname, port, nodes, config)
 	$max_pyld 		= config_options['maxPayload'].to_i
 	$timeout 		= config_options['pingTimeout'].to_i
 	
-	$node_time
-	$rt_table
+	$node_time		= nil
+	$rt_table		= nil
 
 	Thread.new {
 		socket = TCPServer.open('', port)
