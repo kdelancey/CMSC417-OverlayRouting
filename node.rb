@@ -17,29 +17,18 @@ class Header
 	attr_accessor: msg_lngth 	# message length
 end
 
-class Node
-	attr_accessor: hostname		# name of node
-	attr_accessor: port				# port number this node should listen on
-	attr_accessor: nodes_map	# map of nodes and their ports
-	attr_accessor: update_int	# how often routing updates occur (secs)
-	attr_accessor: max_pyld		# maximum payload size for a message (bytes)
-	attr_accessor: timeout 		# how long it should wait for a reply (secs)
-	attr_accessor: node_time	# internal clock of node
-	attr_accessor: rt_table		# routing table for this node
-end
-
-
 # --------------------- Part 0 --------------------- # 
 
-def edgeb(cmd)
+def edgeb(src_ip, dst_ip, dst)
 	STDOUT.puts "EDGE: not implemented"
 end
 
-def dumptable(cmd)
+def dumptable(filename)
+	Utility.dump_table(filename)
 	STDOUT.puts "DUMPTABLE: not implemented"
 end
 
-def shutdown(cmd)
+def shutdown()
 	STDOUT.flush
 	STDERR.flush
 	exit(0)
@@ -129,11 +118,10 @@ def listenLoop()
 
 end
 
-# Command Loop
-#
-#	Loop that reads STDIN for input, and operates
-#	the given user command on this node.
-
+# ====================================================================
+# Reads STDIN for input and operates the given user command for this
+# node
+# ====================================================================
 def commands()
 	while(line = STDIN.gets())
 		line = line.strip()
@@ -141,11 +129,11 @@ def commands()
 		cmd = arr[0]
 		args = arr[1..-1]
 		case cmd
-		when "EDGEB"; edgeb(args)
+		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
 		when "EDGED"; edged(args)
 		when "EDGEU"; edgew(args)
-		when "DUMPTABLE"; dumptable(args)
-		when "SHUTDOWN"; shutdown(args)
+		when "DUMPTABLE"; dumptable(arr[1])
+		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
 		when "SENDMSG"; sendmsg(args)
 		when "PING"; ping(args)
@@ -159,18 +147,30 @@ def commands()
 	end
 end
 
-def setup(hostnm, port, nodes, config)
-	hostname = Node.new
-	hostname.hostname = hostnm
-	hostname.port = port
-	hostname.nodes_map = Utility.read_nodes(nodes)
+# ====================================================================
+# Runs the node and sets up the configurations specified
+# ====================================================================
+def setup(hostname, port, nodes, config)
+	$hostname 		= hostname
+	$port 			= port
+	$nodes_map 		= Utility.read_nodes(nodes)
 
-	config_options = Utility.read_config(config)
-	hostname.update_int = config_options['updateInterval'].to_i
-	hostname.max_pyld = config_options['maxPayload'].to_i
-	hostname.timeout = config_options['pingTimeout'].to_i
+	$config_options = Utility.read_config(config)
+	$update_int 	= config_options['updateInterval'].to_i
+	$max_pyld 		= config_options['maxPayload'].to_i
+	$timeout 		= config_options['pingTimeout'].to_i
+	
+	$node_time
+	$rt_table
 
-	server = TCPServer.new $port		
+	Thread.new {
+		socket = TCPServer.open('', port)
+		loop {
+			Thread.start(socket.accept) do |client|
+				client.close
+			end
+		}
+	}	
 
 	loop do
 		commands

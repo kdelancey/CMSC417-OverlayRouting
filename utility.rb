@@ -31,4 +31,8 @@ class Utility
 		end
 		nodes_map
 	end
+
+	def self.dump_table(filename)
+		
+	end
 end
