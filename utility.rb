@@ -26,10 +26,16 @@ class Utility
 		File.open(nodes_file, 'r') do |file|
 			files.each_line do |line|
 				hostname, port = line.split(',')
-				#I propose a change to an int instead of a string
-				nodes_map[hostname] = port
+				nodes_map[hostname] = port.to_i
 			end
 		end
 		nodes_map
+	end
+
+	def self.dump_table(filename)
+		routing_data = nil
+		File.open("#{file_name}",'w') do |file|
+			file.write(routing_data)
+		end
 	end
 end
