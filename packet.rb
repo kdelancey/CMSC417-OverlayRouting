@@ -1,7 +1,6 @@
 require 'header'
 require 'fragment'
 
-<<<<<<< HEAD
 class Packet
 
 	@aryOfFragments = Array.new #array of all fragments
@@ -72,7 +71,6 @@ class Packet
 			f = Fragment.new fragmentHeader @completeMessage
 			@aryOfFragments.push( f )
 		end
-	end
-	
 
+	end
 end

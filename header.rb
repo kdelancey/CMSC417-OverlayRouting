@@ -1,6 +1,5 @@
 # ----------------- PROJECT OBJECTS ---------------- # 
 
-<<<<<<< HEAD
 class Header
 	attr_reader: hdr_sz #header size in bytes
 	attr_reader: src_nd #source node
@@ -34,7 +33,6 @@ class Header
 	# Return an array/collection of objects representing each of the sections
 	# of the header.
 	# This is a "static" method.
-	
 	def Header.parse_header( hdr_str )
 		ary_of_hdr_vals = hdr_str.split("|")
 		
@@ -88,6 +86,4 @@ class Header
 			@hdr_sz = hdr_wo_hdrsz.length + 3
 		end
 	end
-	
-	
 end

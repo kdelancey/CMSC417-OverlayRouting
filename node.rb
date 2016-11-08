@@ -18,6 +18,8 @@ $timeout = nil			#given timeout of ping in ms
 $node_time = nil		
 $rt_table = nil
 
+$connectionMsgQueue = Queue.new
+
 # --------------------- Part 0 --------------------- # 
 
 def edgeb(src_ip, dst_ip, dst)
@@ -186,7 +188,8 @@ def setup(hostname, port, nodes, config)
 		end
 			
 	}
-	
+
+	# Main thread that takes in standard input for commands
 	loop do
 		commands
 	end
