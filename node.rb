@@ -11,14 +11,12 @@ $connectionThread = nil		# the thread sending outgoing messages
 $nodes_map = nil			# hash of nodes to their corresponding port numbers
 
 $config_options = nil		# array of all config options
-$update_int = nil			# how often routing updates should occur
-$max_pyld = nil				# the maximum size of information across one message
-$timeout = nil				# given timeout of ping in ms
+$update_int = nil			# how often routing updates should occur (secs)
+$max_pyld = nil				# the maximum size of information across one message (bytes)
+$timeout = nil				# given timeout of ping (secs)
 
 $node_time = nil 			# internal clock of this node
-$rt_table = nil 			# routing table of this node
-
-$connectionMsgQueue = Queue.new
+$rt_table = Hash.new 		# routing table of this node
 
 
 # --------------------- Part 0 --------------------- # 
@@ -119,30 +117,30 @@ end
 # ====================================================================
 # Runs the node and sets up the configurations specified
 # ====================================================================
-def setup(hostname, port, nodes, config)
+def setup(hostname, port, nodes_txt, config_file)
 	$hostname 		= hostname
 	$port 			= port
-	$nodes_map 		= Utility.read_nodes(nodes)
+	$nodes_map 		= Utility.read_nodes(nodes_txt)
 
-	$config_options = Utility.read_config(config)
+	$config_options = Utility.read_config(config_file)
 	$update_int 	= config_options['updateInterval'].to_i
 	$max_pyld 		= config_options['maxPayload'].to_i
 	$timeout 		= config_options['pingTimeout'].to_i
 
-	$serverThread.new {
-		#open server listening on $port
-		socket = TCPServer.open( $port )
-		
-		#listen on port
-		while (true) 
+	$connectionMsgQueue = Queue.new
+
+	# thread for server that creates more threads for every request
+	Thread.new {
+		$serverThread = TCPServer.open( $port ) # socket to listen on port
+		loop { # run forever
 			Thread.start(socket.accept) do |client|
 				client.close
 			end
-		end
+		}
 	}	
 	
 	$connectionThread.new {
-	
+
 		#possibly place this elsewhere than setup, cuz it will get big
 		
 		#within thread, hold hash from destination to other nodes socket
@@ -152,7 +150,7 @@ def setup(hostname, port, nodes, config)
 			#either EDGEB, which will create connection, and update the table
 			#within this thread, OR
 			#read the destination from parsing the packet to send message
-		
+
 		#connectionMsgQueue has message/command to be sent out. 
 		#threadMsg has message/command to be processed.
 		while (true)
@@ -175,7 +173,7 @@ def setup(hostname, port, nodes, config)
 					portNum = nodes_map[msgParsed[3]]
 					if ( nodes_map[msgParsed[3]] != nil )
 						nodeNameToSocketHash[msgParsed[3]] = \
-							TCPSocket.new msgParsed[2], portNum.to_i
+						TCPSocket.new msgParsed[2], portNum.to_i
 					end
 					
 				#elsif  ( verify it has valid header ) TODO
@@ -185,16 +183,7 @@ def setup(hostname, port, nodes, config)
 				
 			end
 		end
-			
-	}
 
-	Thread.new {
-		socket = TCPServer.open('', port)
-		loop {
-			Thread.start(socket.accept) do |client|
-				client.close
-			end
-		}
 	}	
 
 	# Main thread that takes in standard input for commands

@@ -4,7 +4,7 @@ class Utility
 	# Reads in configuration file for node and returns a Hash containing
 	# the configuration options
 	# (e.g. config[updateInterval] = 2
-	#		config[maxPayload] = 64
+	#		config[maxPayload]	= 64
 	#		config[pingTimeout] = 5)
 	# ====================================================================
 	def self.read_config(config_file)
@@ -13,6 +13,8 @@ class Utility
 		File.open(config_file, 'r') do |file|
 			file.each_line do |line|
 				key, value = line.split('=')
+				key.strip!
+				value.strip!
 				config[key] = value
 			end
 		end
@@ -31,6 +33,8 @@ class Utility
 		File.open(nodes_file, 'r') do |file|
 			files.each_line do |line|
 				hostname, port = line.split(',')
+				hostname.strip!
+				port.strip!
 				nodes_map[hostname] = port.to_i
 			end
 		end
