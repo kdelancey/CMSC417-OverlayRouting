@@ -1,5 +1,6 @@
 # ----------------- PROJECT OBJECTS ---------------- # 
 
+<<<<<<< HEAD
 class Header
 	attr_reader: hdr_sz #header size in bytes
 	attr_reader: src_nd #source node
@@ -7,6 +8,16 @@ class Header
 	attr_reader: pkt_id #packet id
 	attr_reader: msg_lngth #fragment size in bytes
 	attr_reader: more_frgmnts #more fragments? 0 if no, 1 if yes
+=======
+class header
+	attr_reader: hdr_sz #header size in bytes
+	#attr_accessor: pkt_sz #packet size in bytes
+	attr_reader: src_nd #source node
+	attr_reader: dst_nd #destination node
+	attr_reader: pkt_id #packet id
+	attr_reader: msg_lngth #payload size in bytes
+	attr_reader: more_frgmnts #more fragments?
+>>>>>>> refs/remotes/origin/master
 	attr_reader: ordr_of_fragment #place in order of fragments
 	attr_accessor: ttl #time to live
 	
@@ -34,7 +45,11 @@ class Header
 	# of the header.
 	# This is a "static" method.
 	
+<<<<<<< HEAD
 	def Header.parse_header( hdr_str )
+=======
+	def header.parse_header( hdr_str )
+>>>>>>> refs/remotes/origin/master
 		ary_of_hdr_vals = hdr_str.split("|")
 		
 		ret_array = Array.new(8)
@@ -85,7 +100,10 @@ class Header
 			@hdr_sz = hdr_wo_hdrsz.length + 2
 		elsif ( unfn_hdr.length <= 996 ) #JIC, if header <= 997... same deal, but 999
 			@hdr_sz = hdr_wo_hdrsz.length + 3
+<<<<<<< HEAD
 		end
+=======
+>>>>>>> refs/remotes/origin/master
 	end
 	
 	
