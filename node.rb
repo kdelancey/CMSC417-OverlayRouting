@@ -2,21 +2,21 @@ require 'socket'
 require 'utility'
 require 'thread'
 
-$port = nil				#this node's port number
-$hostname = nil			#this node's hostname
+$port = nil					# this node's port number
+$hostname = nil				# this node's hostname
 
-$connectionMsgQueue = nil	#the queue of messages to the connectionThread
-$serverThread = nil		#the thread receiving incoming messages
-$connectionThread = nil	#the thread sending outgoing messages
-$nodes_map = nil		#hash of all nodes in nodes_file to their port numbers
+$connectionMsgQueue = nil	# the queue of messages to the connectionThread
+$serverThread = nil			# the thread receiving incoming messages
+$connectionThread = nil		# the thread sending outgoing messages
+$nodes_map = nil			# hash of nodes to their corresponding port numbers
 
-$config_options = nil	#array of all config options
-$update_int = nil		#how often routing updates should occur
-$max_pyld = nil			#the maximum size of information across one message
-$timeout = nil			#given timeout of ping in ms
+$config_options = nil		# array of all config options
+$update_int = nil			# how often routing updates should occur
+$max_pyld = nil				# the maximum size of information across one message
+$timeout = nil				# given timeout of ping in ms
 
-$node_time = nil		
-$rt_table = nil
+$node_time = nil 			# internal clock of this node
+$rt_table = nil 			# routing table of this node
 
 $connectionMsgQueue = Queue.new
 
