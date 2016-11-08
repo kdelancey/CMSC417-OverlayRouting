@@ -72,24 +72,6 @@ class Packet
 			f = Fragment.new fragmentHeader @completeMessage
 			@aryOfFragments.push( f )
 		end
-		
-		Fragment.new 
-=======
-class packet
-
-	@num_fragments	#total number of fragments required for message
-	@ary_of_message_fragments
-	
-	
-	def initialize( message )
-	
-		
-	
-	end
-	
-	def fragment_message
-	
->>>>>>> refs/remotes/origin/master
 	end
 	
 

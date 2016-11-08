@@ -1,9 +1,6 @@
 require 'socket'
 require 'utility'
-<<<<<<< HEAD
 require 'thread'
-=======
->>>>>>> refs/remotes/origin/master
 
 $port = nil				#this node's port number
 $hostname = nil			#this node's hostname
@@ -13,7 +10,6 @@ $serverThread = nil		#the thread receiving incoming messages
 $connectionThread = nil	#the thread sending outgoing messages
 $nodes_map = nil		#hash of all nodes in nodes_file to their port numbers
 
-<<<<<<< HEAD
 $config_options = nil	#array of all config options
 $update_int = nil		#how often routing updates should occur
 $max_pyld = nil			#the maximum size of information across one message
@@ -22,17 +18,6 @@ $timeout = nil			#given timeout of ping in ms
 $node_time = nil		
 $rt_table = nil
 
-=======
-class Header
-	attr_accessor: hdr_sz 		# header size
-	attr_accessor: pyld_sz 		# payload size
-	attr_accessor: src_nd 		# source node
-	attr_accessor: dst_nd 		# destination node
-	attr_accessor: pkt_id 		# packet id
-	attr_accessor: msg_lngth 	# message length
-end
-
->>>>>>> refs/remotes/origin/master
 # --------------------- Part 0 --------------------- # 
 
 def edgeb(src_ip, dst_ip, dst)
@@ -140,7 +125,6 @@ def setup(hostname, port, nodes, config)
 	$update_int 	= config_options['updateInterval'].to_i
 	$max_pyld 		= config_options['maxPayload'].to_i
 	$timeout 		= config_options['pingTimeout'].to_i
-<<<<<<< HEAD
 	
 	$connectionMsgQueue = Queue.new
 
@@ -203,21 +187,6 @@ def setup(hostname, port, nodes, config)
 			
 	}
 	
-=======
-	
-	$node_time		= nil
-	$rt_table		= nil
-
-	Thread.new {
-		socket = TCPServer.open('', port)
-		loop {
-			Thread.start(socket.accept) do |client|
-				client.close
-			end
-		}
-	}	
-
->>>>>>> refs/remotes/origin/master
 	loop do
 		commands
 	end
