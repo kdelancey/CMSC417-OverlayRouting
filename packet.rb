@@ -1,7 +1,6 @@
 require 'header'
 require 'fragment'
 
-<<<<<<< HEAD
 class Packet
 
 	@aryOfFragments = Array.new #array of all fragments
@@ -74,7 +73,7 @@ class Packet
 		end
 		
 		Fragment.new 
-=======
+
 class packet
 
 	@num_fragments	#total number of fragments required for message
@@ -89,8 +88,5 @@ class packet
 	
 	def fragment_message
 	
->>>>>>> refs/remotes/origin/master
 	end
-	
-
 end
