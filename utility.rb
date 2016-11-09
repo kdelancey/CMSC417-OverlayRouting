@@ -33,7 +33,7 @@ class Utility
 		nodes_map = Hash.new
 
 		File.open(nodes_file, 'r') do |file|
-			files.each_line do |line|
+			file.each_line do |line|
 				if !line.empty?
 					hostname, port = line.split(',')
 					hostname.strip!
@@ -56,7 +56,7 @@ class Utility
 			routing_data << "#{hostname},#{dst},#{array[0]},#{array[1]}\n"
 		end
 
-		File.open("#{file_name}",'w') do |file|
+		File.open("#{filename}",'w') do |file|
 			file.write(routing_data)
 		end
 	end
