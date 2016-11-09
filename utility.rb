@@ -1,5 +1,5 @@
 class Utility
- 
+
 	# ====================================================================
 	# Reads in configuration file for node and returns a Hash containing
 	# the configuration options
@@ -12,10 +12,12 @@ class Utility
 
 		File.open(config_file, 'r') do |file|
 			file.each_line do |line|
-				key, value = line.split('=')
-				key.strip!
-				value.strip!
-				config[key] = value
+				if !line.empty?
+					key, value = line.split('=')
+					key.strip!
+					value.strip!
+					config[key] = value
+				end
 			end
 		end
 		config
@@ -32,10 +34,12 @@ class Utility
 
 		File.open(nodes_file, 'r') do |file|
 			files.each_line do |line|
-				hostname, port = line.split(',')
-				hostname.strip!
-				port.strip!
-				nodes_map[hostname] = port.to_i
+				if !line.empty?
+					hostname, port = line.split(',')
+					hostname.strip!
+					port.strip!
+					nodes_map[hostname] = port.to_i
+				end
 			end
 		end
 		nodes_map
@@ -45,11 +49,16 @@ class Utility
 	# Writes routing data to "filename", overwrites it if it already
 	# exists
 	# ====================================================================
-	def self.dump_table(filename)
-		routing_data = nil
-		
+	def self.dump_table(filename, rt_table, hostname)
+		routing_data = ''
+
+		rt_table.each do |dst, array|
+			routing_data << "#{hostname},#{dst},#{array[0]},#{array[1]}\n"
+		end
+
 		File.open("#{file_name}",'w') do |file|
 			file.write(routing_data)
 		end
 	end
+
 end

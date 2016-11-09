@@ -5,9 +5,9 @@ require 'thread'
 $port = nil					# this node's port number
 $hostname = nil				# this node's hostname
 
-$connectionMsgQueue = nil	# the queue of messages to the connectionThread
-$serverThread = nil			# the thread receiving incoming messages
-$connectionThread = nil		# the thread sending outgoing messages
+$commandQueue = nil			# the queue of commands to run
+$serverThread = nil			# the thread receiving incoming messages (omit?)
+$connectionThread = nil		# the thread sending outgoing messages (omit?)
 $nodes_map = nil			# hash of nodes to their corresponding port numbers
 
 $config_options = nil		# array of all config options
@@ -22,11 +22,11 @@ $rt_table = Hash.new 		# routing table of this node
 # --------------------- Part 0 --------------------- # 
 
 def edgeb(src_ip, dst_ip, dst)
-	STDOUT.puts "EDGE: not implemented"
+	commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
 end
 
 def dumptable(filename)
-	Utility.dump_table(filename)
+	Utility.dump_table(filename, $rt_table, $hostname)
 end
 
 def shutdown()
@@ -89,7 +89,8 @@ end
 # Reads STDIN for input and operates the given user command for this
 # node
 # ====================================================================
-def commands()
+def commands
+
 	while(line = STDIN.gets())
 		line = line.strip()
 		arr = line.split(' ')
@@ -112,6 +113,59 @@ def commands()
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
+
+end
+
+# ====================================================================
+# Pops off commands from commandQueue to run them
+# ====================================================================
+def commandHandler
+
+	#possibly place this elsewhere than setup, cuz it will get big
+		
+	#within thread, hold hash from destination to other nodes socket
+	nodeNameToSocketHash = Hash.new
+		
+	#constantly see if there is a message to pop on queue, if so...
+		#either EDGEB, which will create connection, and update the table
+		#within this thread, OR
+		#read the destination from parsing the packet to send message
+
+	#commandQueue has message/command to be sent out. 
+	#threadMsg has message/command to be processed.
+	while (true)
+		threadMsg = nil
+		if (!commandQueue.empty?)
+			threadMsg = commandQueue.pop
+			
+			#LATER PLACED INTO ANOTHER METHOD for cleanliness
+				
+			#if message is EDGEB....
+			if ( threadMsg.include? "EDGEB" )
+				#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
+				msgParsed = threadMsg.split(" ");
+					
+				#If the [DST] (destination node) given in EDGEB exists 
+				#	in nodes_map, then it is a valid node to connect with
+					
+				#Open a TCPSocket with the [DSTIP] (dest ip) on the given
+				#	portNum associated with DST on nodes_map
+				portNum = (nodes_map[msgParsed[3]]).to_i
+				if ( nodes_map[msgParsed[3]] != nil )
+					nodeNameToSocketHash[msgParsed[3]] = \
+					TCPSocket.new(msgParsed[2], portNum)
+				end
+
+				# Adds edge of cost 1 to this node's routing table
+				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
+					
+			#elsif  ( verify it has valid header ) TODO
+			else #if message is packet....
+			 #do nothing for now
+			end			
+		end
+	end	
+
 end
 
 # ====================================================================
@@ -123,68 +177,21 @@ def setup(hostname, port, nodes_txt, config_file)
 	$nodes_map 		= Utility.read_nodes(nodes_txt)
 
 	$config_options = Utility.read_config(config_file)
-	$update_int 	= config_options['updateInterval'].to_i
-	$max_pyld 		= config_options['maxPayload'].to_i
-	$timeout 		= config_options['pingTimeout'].to_i
+	$update_int 	= $config_options['updateInterval'].to_i
+	$max_pyld 		= $config_options['maxPayload'].to_i
+	$timeout 		= $config_options['pingTimeout'].to_i
 
-	$connectionMsgQueue = Queue.new
+	$commandQueue = Queue.new
 
-	# thread for server that creates more threads for every request
+	# Thread to handle server that will listen for client messages
 	Thread.new {
-		$serverThread = TCPServer.open( $port ) # socket to listen on port
-		loop { # run forever
-			Thread.start(socket.accept) do |client|
-				client.close
-			end
-		}
+		Server.listen(hostname, port)
 	}	
-	
-	$connectionThread.new {
 
-		#possibly place this elsewhere than setup, cuz it will get big
-		
-		#within thread, hold hash from destination to other nodes socket
-		nodeNameToSocketHash = Hash.new
-		
-		#constantly see if there is a message to pop on queue, if so...
-			#either EDGEB, which will create connection, and update the table
-			#within this thread, OR
-			#read the destination from parsing the packet to send message
-
-		#connectionMsgQueue has message/command to be sent out. 
-		#threadMsg has message/command to be processed.
-		while (true)
-			threadMsg = nil
-			if (!connectionMsgQueue.empty?)
-				threadMsg = connectionMsgQueue.pop
-				
-				#LATER PLACED INTO ANOTHER METHOD for cleanliness
-				
-				#if message is EDGEB....
-				if ( threadMsg.include? "EDGEB" )
-					#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
-					msgParsed = threadMsg.split(" ");
-					
-					#If the [DST] (destination node) given in EDGEB exists 
-					#	in nodes_map, then it is a valid node to connect with
-					
-					#Open a TCPSocket with the [DSTIP] (dest ip) on the given
-					#	portNum associated with DST on nodes_map
-					portNum = nodes_map[msgParsed[3]]
-					if ( nodes_map[msgParsed[3]] != nil )
-						nodeNameToSocketHash[msgParsed[3]] = \
-						TCPSocket.new msgParsed[2], portNum.to_i
-					end
-					
-				#elsif  ( verify it has valid header ) TODO
-				else #if message is packet....
-				 #do nothing for now
-				end
-				
-			end
-		end
-
-	}	
+	# Thread to handle commands that are stored in commandQueue
+	Thread.new {
+		commandHandler
+	}
 
 	# Main thread that takes in standard input for commands
 	loop do
