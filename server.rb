@@ -6,7 +6,7 @@ require 'socket'
 #==========================================================
 class Server
 
-	def self.listen(hostname, port)
+	def self.run(port)
 		socket = TCPServer.open(port) # socket to listen on port
 
 		loop { # run forever

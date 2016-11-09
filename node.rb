@@ -150,8 +150,8 @@ def commandHandler
 					
 				#Open a TCPSocket with the [DSTIP] (dest ip) on the given
 				#	portNum associated with DST on nodes_map
-				portNum = (nodes_map[msgParsed[3]]).to_i
-				if ( nodes_map[msgParsed[3]] != nil )
+				portNum = ($nodes_map[msgParsed[3]]).to_i
+				if ( $nodes_map[msgParsed[3]] != nil )
 					nodeNameToSocketHash[msgParsed[3]] = \
 					TCPSocket.new(msgParsed[2], portNum)
 				end
@@ -185,7 +185,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
-		Server.listen(hostname, port)
+		Server.run(port)
 	}	
 
 	# Thread to handle commands that are stored in commandQueue
