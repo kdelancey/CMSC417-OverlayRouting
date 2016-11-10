@@ -6,7 +6,7 @@ require 'socket'
 #==========================================================
 class Server
 
-	def self.run(port)
+	def self.run( port, commandQueue)
 		socket = TCPServer.open(port) # socket to listen on port
 
 		loop { # run forever
@@ -15,6 +15,7 @@ class Server
 				while packet = client.gets
 					num_packets << packet
 				end
+				commandQueue.push Packet.defragment( num_packets )
 				client.close
 			end
 		}

@@ -1,7 +1,6 @@
 require 'socket'
-require 'utility'
-require 'thread'
-require 'server'
+require_relative 'utility'
+require_relative 'server'
 
 $port = nil					# this node's port number
 $hostname = nil				# this node's hostname
@@ -145,15 +144,48 @@ def commandHandler
 
 				# Open a TCPSocket with the [DSTIP] (dest ip) on the given
 				# portNum associated with DST on nodes_map
-				portNum = ($nodes_map[msgParsed[3]]).to_i
-				if ( $nodes_map[msgParsed[3]] != nil )
-					nodeNameToSocketHash[msgParsed[3]] = 
-					TCPSocket.new(msgParsed[2], portNum)
+				portNum = $nodes_map[msgParsed[3]]
+				if ( ( $nodes_map[msgParsed[3]] != nil ) \
+							and ( nodeNameToSocketHash[msgParsed[3]] == nil )	)
+					nodeNameToSocketHash[msgParsed[3]] = \
+						TCPSocket.new(msgParsed[2], portNum)
+					
+					
+					# SEND REQUEST
+					# Make new packet, that asks for a similar
+					# client edge. Flip recieved command to do so.
+									   # [DSTIP] [SRCIP] [CURRENTNODENAME]
+					str_request = \
+						"REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
+						
+					#send in series of messages
+					rqstPacket = Packet.new $hostname,\
+											msgParsed[3], \
+											str_request, \
+											$max_pyld
+					
+					#fragment packet, send over connection
+					rqstPacket.fragment.each { |frgmnt|
+						nodeNameToSocketHash[msgParsed[3]].puts \
+							frgmnt.to_s
+					}
 				end
 
 				# Adds edge of cost 1 to this node's routing table
+				# TODO Update the distance when asked
 				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 
+			# If recieved "REQUEST:" message, commit to the request from
+			# other node
+			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
+			
+				# All string after "REQUEST:"
+				rqstParsed = rqstMatch.post_match
+				
+				#TODO Eventually discriminate between different requests.
+				
+				$commandQueue.push rqstParsed
+			
 			# elsif  ( verify it has valid header )
 			else # if message is packet....
 				# do nothing for now
@@ -179,7 +211,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
-		Server.run(port)
+		Server.run( $port, $commandQueue)
 	}	
 
 	# Thread to handle commands that are stored in commandQueue
