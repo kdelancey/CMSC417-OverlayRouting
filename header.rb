@@ -29,27 +29,6 @@ class Header
 		
 	end
 	
-	# Parse the given Header string, 
-	# Return an array/collection of objects representing each of the sections
-	# of the header.
-	# This is a "static" method.
-	def Header.parse_header( hdr_str )
-		ary_of_hdr_vals = hdr_str.split("|")
-		
-		ret_array = Array.new(8)
-		ret_array[0] = ary_of_hdr_vals[0].to_i
-		ret_array[1] = ary_of_hdr_vals[1]
-		ret_array[2] = ary_of_hdr_vals[2]
-		ret_array[3] = ary_of_hdr_vals[3].to_i
-		ret_array[4] = ary_of_hdr_vals[4].to_i
-		ret_array[5] = ary_of_hdr_vals[5].to_i
-		ret_array[6] = ary_of_hdr_vals[6].to_i
-		ret_array[7] = ary_of_hdr_vals[7].to_i
-		
-		return ret_array
-		
-	end
-	
 	# to_s generates a pipe '|' delimited string in the order of:
 		#header size #packet size #source node #destination node #packet id
 		#payload size #more fragments? #place in order of fragments #time to live
