@@ -135,25 +135,25 @@ def commandHandler
 		
 		if (!$commandQueue.empty?)			
 			threadMsg = $commandQueue.pop
-
+			
 			#if message is EDGEB....
-			if (threadMsg.include? "EDGEB")				
+			if ( (!threadMsg.include? "REQUEST:") && (threadMsg.include? "EDGEB") )		
 				#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
 				msgParsed = threadMsg.split(" ");
-				
-				# Adds edge of cost 1 to this node's routing table
-				# TODO Update the distance when asked
-				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
-
-				# If the [DST] (destination node) given in EDGEB exists 
-				# in nodes_map, then it is a valid node to connect with
-
-				# Open a TCPSocket with the [DSTIP] (dest ip) on the given
-				# portNum associated with DST on nodes_map
-				dstPort = $nodes_map[msgParsed[3]]
-				
 				if (nodeNameToSocketHash[msgParsed[3]] == nil)
-					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)			
+
+					# If the [DST] (destination node) given in EDGEB exists 
+					# in nodes_map, then it is a valid node to connect with
+
+					# Open a TCPSocket with the [DSTIP] (dest ip) on the given
+					# portNum associated with DST on nodes_map
+					dstPort = $nodes_map[msgParsed[3]]
+					
+					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
+					
+					# Adds edge of cost 1 to this node's routing table
+					# TODO Update the distance when asked
+					$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 					
 					# SEND REQUEST
 					# Make new packet, that asks for a similar
@@ -175,11 +175,9 @@ def commandHandler
 					
 					nodeNameToSocketHash[msgParsed[3]].puts(str_request)
 				end
-
 			# If recieved "REQUEST:" message, commit to the request from
 			# other node
 			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
-			
 				# All string after "REQUEST:"
 				rqstParsed = rqstMatch.post_match
 				
