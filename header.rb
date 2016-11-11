@@ -1,21 +1,21 @@
 # ----------------- PROJECT OBJECTS ---------------- # 
 
 class Header
-	attr_reader: hdr_sz #header size in bytes
-	attr_reader: src_nd #source node
-	attr_reader: dst_nd #destination node
-	attr_reader: pkt_id #packet id
-	attr_reader: msg_lngth #fragment size in bytes
-	attr_reader: more_frgmnts #more fragments? 0 if no, 1 if yes
-	attr_reader: ordr_of_fragment #place in order of fragments
-	attr_accessor: ttl #time to live
+	attr_reader :hdr_sz #header size in bytes
+	attr_reader :src_nd #source node
+	attr_reader :dst_nd #destination node
+	attr_reader :pkt_id #packet id
+	attr_reader :msg_lngth #fragment size in bytes
+	attr_reader :more_frgmnts #more fragments? 0 if no, 1 if yes
+	attr_reader :ordr_of_fragment #place in order of fragments
+	attr_accessor :ttl #time to live
 	
 	# initialize creates a header object.
 	# this header object will be initialized with 
 	# this header object will be used in another class, packet,
 	# that upon creation, will 
-	def initialize( source, destination, id, message_length\
-					additional_fragments, order_fragment, time_to_live )
+	def initialize(source, destination, id, message_length, additional_fragments, 
+		order_fragment, time_to_live)
 		
 		@src_nd = source #source node
 		@dst_nd = destination #destination node

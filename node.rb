@@ -1,11 +1,13 @@
 require 'socket'
-require_relative 'utility'
-require_relative 'server'
+require 'thread'
+require './utility'
+require './server'
+require './packet'
 
 $port = nil					# this node's port number
 $hostname = nil				# this node's hostname
 
-$commandQueue = nil			# the queue of commands to run
+$commandQueue = Queue.new			# the queue of commands to run
 $serverThread = nil			# the thread receiving incoming messages (omit?)
 $connectionThread = nil		# the thread sending outgoing messages (omit?)
 $nodes_map = nil			# hash of nodes to their corresponding port numbers
@@ -135,45 +137,47 @@ def commandHandler
 			threadMsg = $commandQueue.pop
 
 			#if message is EDGEB....
-			if ( threadMsg.include? "EDGEB" )
+			if (threadMsg.include? "EDGEB")				
 				#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
 				msgParsed = threadMsg.split(" ");
+				
+				# Adds edge of cost 1 to this node's routing table
+				# TODO Update the distance when asked
+				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 
 				# If the [DST] (destination node) given in EDGEB exists 
 				# in nodes_map, then it is a valid node to connect with
 
 				# Open a TCPSocket with the [DSTIP] (dest ip) on the given
 				# portNum associated with DST on nodes_map
-				portNum = $nodes_map[msgParsed[3]]
-				if ( ( $nodes_map[msgParsed[3]] != nil ) \
-							and ( nodeNameToSocketHash[msgParsed[3]] == nil )	)
-					nodeNameToSocketHash[msgParsed[3]] = \
-						TCPSocket.new(msgParsed[2], portNum)
-					
+				dstPort = $nodes_map[msgParsed[3]]
+				
+				if (nodeNameToSocketHash[msgParsed[3]] == nil)
+					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)		
+						
+					STDOUT.puts "CAN YOU GET TO THIS LINE"			
 					
 					# SEND REQUEST
 					# Make new packet, that asks for a similar
 					# client edge. Flip recieved command to do so.
-									   # [DSTIP] [SRCIP] [CURRENTNODENAME]
+					# [DSTIP] [SRCIP] [CURRENTNODENAME]
 					str_request = \
 						"REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
 						
 					#send in series of messages
-					rqstPacket = Packet.new $hostname,\
-											msgParsed[3], \
-											str_request, \
-											$max_pyld
+					#rqstPacket = Packet.new $hostname,\
+						#					msgParsed[3], \
+							#				str_request, \
+							#				$max_pyld
 					
 					#fragment packet, send over connection
-					rqstPacket.fragment.each { |frgmnt|
-						nodeNameToSocketHash[msgParsed[3]].puts \
-							frgmnt.to_s
-					}
+					#rqstPacket.fragment.each { |frgmnt|
+					#	nodeNameToSocketHash[msgParsed[3]].write(frgmnt.to_s)
+					#}
+					
+					nodeNameToSocketHash[msgParsed[3]].puts(str_request)
+					STDOUT.puts "END OF FUNCTION"
 				end
-
-				# Adds edge of cost 1 to this node's routing table
-				# TODO Update the distance when asked
-				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 
 			# If recieved "REQUEST:" message, commit to the request from
 			# other node
@@ -184,7 +188,7 @@ def commandHandler
 				
 				#TODO Eventually discriminate between different requests.
 				
-				$commandQueue.push rqstParsed
+				$commandQueue.push(rqstParsed)
 			
 			# elsif  ( verify it has valid header )
 			else # if message is packet....
@@ -207,11 +211,9 @@ def setup(hostname, port, nodes_txt, config_file)
 	$max_pyld 		= $config_options['maxPayload'].to_i
 	$timeout 		= $config_options['pingTimeout'].to_i
 
-	$commandQueue = Queue.new
-
 	# Thread to handle server that will listen for client messages
 	Thread.new {
-		Server.run( $port, $commandQueue)
+		Server.run($port, $commandQueue)
 	}	
 
 	# Thread to handle commands that are stored in commandQueue

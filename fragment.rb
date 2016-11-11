@@ -1,4 +1,4 @@
-require 'header'
+require './header'
 
 class Fragment
 	@hdr

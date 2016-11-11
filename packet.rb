@@ -1,5 +1,5 @@
-require 'header'
-require 'fragment'
+require './header'
+require './fragment'
 
 class Packet
 
@@ -54,7 +54,7 @@ class Packet
 				#create header for specific fragment
 				fragmentHeader = \
 				Header.new @sourceNode, @destNode,\
-							@packetId, fragmentData.length\
+							@packetId, fragmentData.length,\
 							additionalFragments, aryOfFragments.length,\
 								timeToLive
 								
@@ -83,7 +83,7 @@ class Packet
 		ary_of_fragment_strings.each { |fragment_str|
 		
 			# Get the header and payload one of the fragment strings
-			curr_fragment = Header.parse_fragment( fragment_str )
+			curr_fragment = Packet.parse_fragment( fragment_str )
 			
 			# Get the packet id from the header of the fragment
 			curr_fragment_pkt_id = curr_fragment.get_hdr.pkt_id
@@ -110,7 +110,7 @@ class Packet
 				id_to_fragment[curr_fragment_pkt_id] = \
 						sort_fragments( ary_of_fragments_with_same_pkt_id )
 						
-				return concat_fragments ( id_to_fragment[curr_fragment_pkt_id] )
+				return concat_fragments(id_to_fragment[curr_fragment_pkt_id])
 				
 			else 
 			
