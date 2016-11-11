@@ -13,13 +13,12 @@ class Server
 			Thread.start(socket.accept) do |client|
 				num_packets = []
 				while packet = client.gets
-					puts packet
-					commandQueue.push(packet)
 					num_packets << packet
 				end
+				client.close
 				# commandQueue.push(packet)
 				#commandQueue.push(Packet.defragment(num_packets))
-				client.close
+				commandQueue.push(num_packets[0])
 			end
 		end
 	end
