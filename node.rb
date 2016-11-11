@@ -121,7 +121,7 @@ end
 # ====================================================================
 def commandHandler
 	# within thread, hold hash from destination to other nodes socket
-	nodeNameToSocketHash = Hash.new
+	nodeNameToSocketHash = Hash.new(nil)
 
 	# constantly see if there is a message to pop on queue, if so...
 	# either EDGEB, which will create connection, and update the table
@@ -153,9 +153,7 @@ def commandHandler
 				dstPort = $nodes_map[msgParsed[3]]
 				
 				if (nodeNameToSocketHash[msgParsed[3]] == nil)
-					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)		
-						
-					STDOUT.puts "CAN YOU GET TO THIS LINE"			
+					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)				
 					
 					# SEND REQUEST
 					# Make new packet, that asks for a similar
@@ -176,7 +174,6 @@ def commandHandler
 					#}
 					
 					nodeNameToSocketHash[msgParsed[3]].puts(str_request)
-					STDOUT.puts "END OF FUNCTION"
 				end
 
 			# If recieved "REQUEST:" message, commit to the request from

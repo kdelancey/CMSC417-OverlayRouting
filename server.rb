@@ -9,17 +9,19 @@ class Server
 	def self.run(port, commandQueue)
 		socket = TCPServer.open(port) # socket to listen on port
 
-		loop { # run forever
+		while (true) do # run forever
 			Thread.start(socket.accept) do |client|
 				num_packets = []
 				while packet = client.gets
 					puts packet
+					commandQueue.push(packet)
 					num_packets << packet
 				end
+				# commandQueue.push(packet)
+				#commandQueue.push(Packet.defragment(num_packets))
 				client.close
-				commandQueue.push(Packet.defragment(num_packets))
 			end
-		}
+		end
 	end
 
 end
