@@ -61,4 +61,21 @@ class Utility
 		end
 	end
 
+	# ====================================================================
+	# Displays status info of this node
+	# ====================================================================
+	def self.display_status(rt_table, hostname, port)
+		status_info = "Name: #{hostname} Port: #{port} Neighbors: "
+		neighbors = Array.new
+
+		rt_table.each do |dst, array|
+			neighbors << dst
+		end
+
+		neighbors.sort!
+
+		status_info << neighbors.join(",")
+		status_info
+	end
+
 end

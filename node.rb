@@ -49,7 +49,7 @@ def edgeu(cmd)
 end
 
 def status()
-	STDOUT.puts "STATUS: not implemented"
+	STDOUT.puts(Utility.display_status($rt_table, $hostname, $port))
 end
 
 
