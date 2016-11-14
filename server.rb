@@ -16,6 +16,7 @@ class Server
 					#puts packet
 					commandQueue.push(packet)
 					num_packets << packet
+					sleep(10)
 				end
 				client.close
 				# commandQueue.push(packet)
