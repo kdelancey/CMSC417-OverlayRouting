@@ -47,7 +47,8 @@ class Utility
 
 	# ====================================================================
 	# Writes routing data to "filename", overwrites it if it already
-	# exists
+	# exists. It will follow this format:
+	# Source,Destination,NextHop,Distance
 	# ====================================================================
 	def self.dump_table(filename, rt_table, hostname)
 		routing_data = ''
@@ -62,19 +63,28 @@ class Utility
 	end
 
 	# ====================================================================
-	# Displays status info of this node
+	# Displays status info of this node following this format:
+	# Name: Port: Neighbors (lexicographical order)
 	# ====================================================================
 	def self.display_status(rt_table, hostname, port)
 		status_info = "Name: #{hostname} Port: #{port} Neighbors: "
 		neighbors = Array.new
 
 		rt_table.each do |dst, array|
-			neighbors << dst
+			if (dst.eql?(array[0]))
+				neighbors << dst
+			end
 		end
 
 		neighbors.sort!
 
-		status_info << neighbors.join(",")
+		if (neighbors.size == 1)
+			status_info << neighbors[0]
+		else
+			status_info << neighbors.join(",")
+		end
+
+		status_info << "\n"
 		status_info
 	end
 

@@ -1,5 +1,6 @@
 require 'socket'
 require 'thread'
+
 require './utility'
 require './server'
 require './packet'
@@ -7,9 +8,7 @@ require './packet'
 $port = nil					# this node's port number
 $hostname = nil				# this node's hostname
 
-$commandQueue = Queue.new			# the queue of commands to run
-$serverThread = nil			# the thread receiving incoming messages (omit?)
-$connectionThread = nil		# the thread sending outgoing messages (omit?)
+$commandQueue = Queue.new	# the queue of messages/commands to process
 $nodes_map = nil			# hash of nodes to their corresponding port numbers
 
 $config_options = nil		# array of all config options
@@ -120,61 +119,42 @@ end
 # Pops off commands from commandQueue to run them on this node
 # ====================================================================
 def commandHandler
-	# within thread, hold hash from destination to other nodes socket
-	nodeNameToSocketHash = Hash.new
+	# Hash that keeps track of open sockets on this node
+	openSockets = Hash.new
 
-	# constantly see if there is a message to pop on queue, if so...
-	# either EDGEB, which will create connection, and update the table
-	# within this thread, OR
-	# read the destination from parsing the packet to send message
-
-	# commandQueue has message/command to be sent out. 
-	# threadMsg has message/command to be processed.
+	# Constantly see if there is a message to pop from queue
 	while (true)
 		threadMsg = nil
 		
-		if (!$commandQueue.empty?)			
+		# Check whether Queue has a message/command to process
+		if ( !$commandQueue.empty? )			
 			threadMsg = $commandQueue.pop
 			
-			#if message is EDGEB....
+			# If EDGEB command is called
 			if ( (!threadMsg.include? "REQUEST:") && (threadMsg.include? "EDGEB") )		
-				#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
+				# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 				msgParsed = threadMsg.split(" ");
-				if (nodeNameToSocketHash[msgParsed[3]] == nil)
 
-					# If the [DST] (destination node) given in EDGEB exists 
-					# in nodes_map, then it is a valid node to connect with
-
-					# Open a TCPSocket with the [DSTIP] (dest ip) on the given
-					# portNum associated with DST on nodes_map
+				# Check whether socket has already been opened to dst node
+				if (openSockets[msgParsed[3]] == nil)
+					# Open a TCPSocket with the [DSTIP] on the given
+					# portNum associated with DST in nodes_map
 					dstPort = $nodes_map[msgParsed[3]]
-					
-					nodeNameToSocketHash[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
+
+					openSockets[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
 					
 					# Adds edge of cost 1 to this node's routing table
-					# TODO Update the distance when asked
 					$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 					
-					# SEND REQUEST
-					# Make new packet, that asks for a similar
-					# client edge. Flip recieved command to do so.
+					# Send request to dst node to add edge to its routing
+					# table. Flip recieved command to do so.
 					# [DSTIP] [SRCIP] [CURRENTNODENAME]
 					str_request = \
 						"REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
-						
-					#send in series of messages
-					#rqstPacket = Packet.new $hostname,\
-						#					msgParsed[3], \
-							#				str_request, \
-							#				$max_pyld
 					
-					#fragment packet, send over connection
-					#rqstPacket.fragment.each { |frgmnt|
-					#	nodeNameToSocketHash[msgParsed[3]].write(frgmnt.to_s)
-					#}
-					
-					nodeNameToSocketHash[msgParsed[3]].puts(str_request)
+					openSockets[msgParsed[3]].puts(str_request)
 				end
+
 			# If recieved "REQUEST:" message, commit to the request from
 			# other node
 			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
@@ -183,10 +163,9 @@ def commandHandler
 				
 				#TODO Eventually discriminate between different requests.
 				
+				# Push command to be run by node
 				$commandQueue.push(rqstParsed)
-			
-			# elsif  ( verify it has valid header )
-			else # if message is packet....
+			else
 				# do nothing for now
 			end			
 		end
@@ -216,7 +195,7 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 
-	# Main thread that takes in standard input for commands
+	# Thread (Main) that takes in standard input for commands
 	loop do
 		commands
 	end
