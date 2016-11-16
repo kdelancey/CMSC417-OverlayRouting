@@ -12,7 +12,7 @@ class Utility
 
 		File.open(config_file, 'r') do |file|
 			file.each_line do |line|
-				if !line.empty?
+				if (!line.empty?)
 					key, value = line.split('=')
 					key.strip!
 					value.strip!
@@ -34,7 +34,7 @@ class Utility
 
 		File.open(nodes_file, 'r') do |file|
 			file.each_line do |line|
-				if !line.empty?
+				if (!line.empty?)
 					hostname, port = line.split(',')
 					hostname.strip!
 					port.strip!
@@ -52,9 +52,17 @@ class Utility
 	# ====================================================================
 	def self.dump_table(filename, rt_table, hostname)
 		routing_data = ''
+		dst_array = Array.new
 
-		rt_table.each do |dst, array|
-			routing_data << "#{hostname},#{dst},#{array[0]},#{array[1]}\n"
+		rt_table.each do |key, value|
+			dst_array << key
+		end
+
+		dst_array.sort!
+
+		dst_array.each do |dst|
+			arr = rt_table[dst]
+			routing_data << "#{hostname},#{dst},#{arr[0]},#{arr[1]}\n"
 		end
 
 		File.open("#{filename}",'w') do |file|

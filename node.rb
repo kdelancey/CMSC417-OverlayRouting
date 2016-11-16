@@ -4,6 +4,7 @@ require 'thread'
 require './utility'
 require './server'
 require './packet'
+require './commandHandler'
 
 $port = nil					# this node's port number
 $hostname = nil				# this node's hostname
@@ -39,12 +40,12 @@ end
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(cmd)
-	STDOUT.puts "EDGED: not implemented"
+def edged(dst)
+	$commandQueue.push("EDGED #{dst}")
 end
 
-def edgeu(cmd)
-	STDOUT.puts "EDGEU: not implemented"
+def edgeu(dst, cost)
+	$commandQueue.push("EDGEU #{dst} #{cost}")
 end
 
 def status()
@@ -98,8 +99,8 @@ def commands
 		args = arr[1..-1]
 		case cmd
 		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(args)
-		when "EDGEU"; edgew(args)
+		when "EDGED"; edged(arr[1])
+		when "EDGEU"; edgeu(arr[1], arr[2])
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
@@ -113,63 +114,6 @@ def commands
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
-end
-
-# ====================================================================
-# Pops off commands from commandQueue to run them on this node
-# ====================================================================
-def commandHandler
-	# Hash that keeps track of open sockets on this node
-	openSockets = Hash.new
-
-	# Constantly see if there is a message to pop from queue
-	while (true)
-		threadMsg = nil
-		
-		# Check whether Queue has a message/command to process
-		if ( !$commandQueue.empty? )			
-			threadMsg = $commandQueue.pop
-			
-			# If EDGEB command is called
-			if ( (!threadMsg.include? "REQUEST:") && (threadMsg.include? "EDGEB") )		
-				# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
-				msgParsed = threadMsg.split(" ");
-
-				# Check whether socket has already been opened to dst node
-				if (openSockets[msgParsed[3]] == nil)
-					# Open a TCPSocket with the [DSTIP] on the given
-					# portNum associated with DST in nodes_map
-					dstPort = $nodes_map[msgParsed[3]]
-
-					openSockets[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
-					
-					# Adds edge of cost 1 to this node's routing table
-					$rt_table[msgParsed[3]] = [msgParsed[3], 1]
-					
-					# Send request to dst node to add edge to its routing
-					# table. Flip recieved command to do so.
-					# [DSTIP] [SRCIP] [CURRENTNODENAME]
-					str_request = \
-						"REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
-					
-					openSockets[msgParsed[3]].puts(str_request)
-				end
-
-			# If recieved "REQUEST:" message, commit to the request from
-			# other node
-			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
-				# All string after "REQUEST:"
-				rqstParsed = rqstMatch.post_match
-				
-				#TODO Eventually discriminate between different requests.
-				
-				# Push command to be run by node
-				$commandQueue.push(rqstParsed)
-			else
-				# do nothing for now
-			end			
-		end
-	end	
 end
 
 # ====================================================================
