@@ -20,6 +20,7 @@ class Utility
 				end
 			end
 		end
+
 		config
 	end
 
@@ -42,13 +43,15 @@ class Utility
 				end
 			end
 		end
+
 		nodes_map
 	end
 
 	# ====================================================================
 	# Writes routing data to "filename", overwrites it if it already
-	# exists. It will follow this format:
+	# exists. It will follow this format in order of src, dst, nextHop:
 	# Source,Destination,NextHop,Distance
+	# (e.g. n1,n2,n2,1)
 	# ====================================================================
 	def self.dump_table(filename, rt_table, hostname)
 		routing_data = ''
@@ -72,7 +75,8 @@ class Utility
 
 	# ====================================================================
 	# Displays status info of this node following this format:
-	# Name: Port: Neighbors (lexicographical order)
+	# Name: Port: Neighbors: (lexicographical order)
+	# (e.g. Name: n1 Port: 10951 Neighbors: n2,n3,n4)
 	# ====================================================================
 	def self.display_status(rt_table, hostname, port)
 		status_info = "Name: #{hostname} Port: #{port} Neighbors: "
@@ -88,7 +92,7 @@ class Utility
 
 		if (neighbors.size == 1)
 			status_info << neighbors[0]
-		else
+		elsif (neighbors.size > 1)
 			status_info << neighbors.join(",")
 		end
 

@@ -6,19 +6,19 @@ require './server'
 require './packet'
 require './commandHandler'
 
-$port = nil					# this node's port number
-$hostname = nil				# this node's hostname
+$port = nil					# Node's port number
+$hostname = nil				# Node's hostname
 
-$commandQueue = Queue.new	# the queue of messages/commands to process
-$nodes_map = nil			# hash of nodes to their corresponding port numbers
+$commandQueue = Queue.new	# Queue of messages/commands to process
+$nodes_map = nil			# Hash of nodes to their corresponding port numbers
 
-$config_options = nil		# array of all config options
-$update_int = nil			# how often routing updates should occur (secs)
-$max_pyld = nil				# the maximum size of information across one message (bytes)
-$timeout = nil				# given timeout of ping (secs)
+$config_options = nil		# Array of all config options
+$update_int = nil			# How often routing updates should occur (secs)
+$max_pyld = nil				# Maximum size of information that can be sent (bytes)
+$timeout = nil				# Given timeout of ping (secs)
 
-$node_time = nil 			# internal clock of this node
-$rt_table = Hash.new 		# routing table of this node
+$node_time = nil 			# Internal clock of this node
+$rt_table = Hash.new 		# Routing table of this node
 
 
 # --------------------- Part 0 --------------------- # 
@@ -55,34 +55,34 @@ end
 
 # --------------------- Part 2 --------------------- # 
 
-def sendmsg(cmd)
+def sendmsg()
 	STDOUT.puts "SENDMSG: not implemented"
 end
 
-def ping(cmd)
+def ping()
 	STDOUT.puts "PING: not implemented"
 end
 
-def traceroute(cmd)
+def traceroute()
 	STDOUT.puts "TRACEROUTE: not implemented"
 end
 
-def ftp(cmd)
+def ftp()
 	STDOUT.puts "FTP: not implemented"
 end
 
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb(cmd)
+def circuitb()
 	STDOUT.puts "CIRCUITB: not implemented"
 end
 
-def circuitm(cmd)
+def circuitm()
 	STDOUT.puts "CIRCUITM: not implemented"
 end
 
-def circuitd(cmd)
+def circuitd()
 	STDOUT.puts "CIRCUITD: not implemented"
 end
 
@@ -96,7 +96,6 @@ def commands
 		line = line.strip()
 		arr = line.split(' ')
 		cmd = arr[0]
-		args = arr[1..-1]
 		case cmd
 		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
 		when "EDGED"; edged(arr[1])
@@ -104,13 +103,13 @@ def commands
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg(args)
-		when "PING"; ping(args)
-		when "TRACEROUTE"; traceroute(args)
-		when "FTP"; ftp(args)
-		when "CIRCUITB"; circuitb(args)
-		when "CIRCUITM"; circuitm(args)
-		when "CIRCUITD"; circuitd(args)
+		when "SENDMSG"; sendmsg()
+		when "PING"; ping()
+		when "TRACEROUTE"; traceroute()
+		when "FTP"; ftp()
+		when "CIRCUITB"; circuitb()
+		when "CIRCUITM"; circuitm()
+		when "CIRCUITD"; circuitd()
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
@@ -139,7 +138,7 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 
-	# Thread (Main) that takes in standard input for commands
+	# Main thread that takes in standard input for commands
 	loop do
 		commands
 	end
