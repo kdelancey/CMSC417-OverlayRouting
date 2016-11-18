@@ -1,7 +1,5 @@
 require 'socket'
 
-require './server'
-
 # ====================================================================
 # Pops off commands from commandQueue to run them on this node
 # ====================================================================
@@ -23,6 +21,8 @@ def commandHandler
 		# table. Flip recieved command to do so.
 		# [DSTIP] [SRCIP] [CURRENTNODENAME]
 		str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
+
+		puts "Opening connection to #{msgParsed[2]}, #{dstPort}"
 
 		# Open a TCPSocket with the [DSTIP] on the given
 		# port associated with DST in nodes_map
@@ -54,13 +54,10 @@ def commandHandler
 			threadMsg = $commandQueue.pop
 			
 			if ( (!threadMsg.include? "REQUEST:") && (threadMsg.include? "EDGEB") )	
-				puts "EDGEB command"
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include? "EDGED")	
-				puts "EDGED command"
 				edged_command(threadMsg)
 			elsif (threadMsg.include? "EDGEU")	
-				puts "EDGEU command"
 				edgeu_command(threadMsg)
 			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
 				# All string after "REQUEST:"

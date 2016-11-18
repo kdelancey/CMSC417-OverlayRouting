@@ -130,7 +130,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
-		Server.run($port, $commandQueue)
+		Server.run($port)
 	}	
 
 	# Thread to handle commands that are stored in commandQueue

@@ -6,16 +6,15 @@ require 'socket'
 #==========================================================
 class Server
 
-	def self.run(port, commandQueue)
+	def self.run(port)
 		socket = TCPServer.open(port) # socket to listen on port
 
 		while (true)
 			Thread.start(socket.accept) do |client|
 				puts "Client accepted"
-				num_packets = []
 				while packet = client.gets
 					puts packet
-					commandQueue.push(packet)
+					$commandQueue.push(packet)
 				end
 
 				client.close
