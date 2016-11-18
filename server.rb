@@ -11,8 +11,10 @@ class Server
 
 		while (true)
 			Thread.start(socket.accept) do |client|
+				puts "Client accepted"
 				num_packets = []
 				while packet = client.gets
+					puts packet
 					commandQueue.push(packet)
 				end
 
