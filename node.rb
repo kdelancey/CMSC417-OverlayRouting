@@ -3,14 +3,15 @@ require 'thread'
 
 require './utility'
 require './server'
-require './packet'
 require './commandHandler'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
 
 $commandQueue = Queue.new	# Queue of messages/commands to process
+
 $nodes_map = nil			# Hash of nodes to their corresponding port numbers
+$open_sock = Hash.new		# Hash of all open sockets to this node
 
 $config_options = nil		# Array of all config options
 $update_int = nil			# How often routing updates should occur (secs)

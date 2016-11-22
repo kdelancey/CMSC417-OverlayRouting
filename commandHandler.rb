@@ -4,30 +4,28 @@ require 'socket'
 # Pops off commands from commandQueue to run them on this node
 # ====================================================================
 def commandHandler
-	# Hash that keeps track of open sockets on this node
-	openSockets = Hash.new
 
 	def self.edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
 
-		# Adds edge of COST 1 to DST
-		$rt_table[msgParsed[3]] = [msgParsed[3], 1]
+		if ($open_sock[msgParsed[3]] == nil)
+			# Adds edge of COST 1 to DST
+			$rt_table[msgParsed[3]] = [msgParsed[3], 1]
 
-		# Destination node's port number
-		dstPort = $nodes_map[msgParsed[3]]
+			# DST's port number
+			dstPort = $nodes_map[msgParsed[3]]
 
-		# Send request to dst node to add edge to its routing
-		# table. Flip recieved command to do so.
-		# [DSTIP] [SRCIP] [CURRENTNODENAME]
-		str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
+			# Send request to DST to add edge to its routing
+			# table. Flip recieved command to do so.
+			# [DSTIP] [SRCIP] [CURRENTNODENAME]
+			str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
 
-		puts "Opening connection to #{msgParsed[2]}, #{dstPort}"
-
-		# Open a TCPSocket with the [DSTIP] on the given
-		# port associated with DST in nodes_map
-		openSockets[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
-		openSockets[msgParsed[3]].puts(str_request)
+			# Open a TCPSocket with the [DSTIP] on the given
+			# port associated with DST in nodes_map
+			$open_sock[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
+			$open_sock[msgParsed[3]].puts(str_request)
+		end
 	end
 
 	def self.edged_command(threadMsg)
@@ -35,7 +33,7 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		# Removes the edge to DST
-		$rt_table[msgParsed[1]] = nil
+		$rt_table.delete(msgParsed[1])
 	end
 
 	def self.edgeu_command(threadMsg)
@@ -59,17 +57,14 @@ def commandHandler
 				edged_command(threadMsg)
 			elsif (threadMsg.include? "EDGEU")	
 				edgeu_command(threadMsg)
-			elsif ( ( rqstMatch = /REQUEST:/.match(threadMsg) ) != nil )
-				# All string after "REQUEST:"
-				puts rqstMatch
-				rqstParsed = rqstMatch.post_match
-				
-				#TODO Eventually discriminate between different requests.
+			elsif ( ( requestMatch = /REQUEST:/.match(threadMsg) ) != nil )
+				# String after "REQUEST:"
+				requestCommand = requestMatch.post_match
 				
 				# Push command to be run by node
-				$commandQueue.push(rqstParsed)
+				$commandQueue.push(requestCommand)
 			else
-				# do nothing for now
+				STDOUT.puts "Invalid command or not implemented yet"
 			end			
 		end
 	end
