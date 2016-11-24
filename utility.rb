@@ -65,8 +65,7 @@ class Utility
 
 		dst_array.each do |dst|
 			arr = rt_table[dst]
-			STDOUT.puts( arr[1].to_i )
-			routing_data << "#{hostname},#{dst},#{arr[0]},#{arr[1].to_i}\n"
+			routing_data << "#{hostname},#{dst},#{arr[0]},#{arr[1]}\n"
 		end
 
 		File.open("#{filename}",'w') do |file|

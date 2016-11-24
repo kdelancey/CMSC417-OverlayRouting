@@ -46,6 +46,8 @@ def commandHandler
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
 		
+		puts msgParsed[2].to_i
+		
 		if (msgParsed.length == 3)
 		
 		puts msgParsed[2].to_i
