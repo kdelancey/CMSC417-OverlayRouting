@@ -11,7 +11,8 @@ class Server
 
 		while (true)
 			Thread.start(socket.accept) do |client|
-				while packet = client.gets
+				
+				while packet = client.gets.chomp
 					$commandQueue.push(packet)
 				end
 

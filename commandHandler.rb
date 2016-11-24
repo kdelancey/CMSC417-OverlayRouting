@@ -9,6 +9,8 @@ def commandHandler
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
 
+		if (msgParsed.length == 4)
+		
 		if ($open_sock[msgParsed[3]] == nil)
 			# Adds edge of COST 1 to DST
 			$rt_table[msgParsed[3]] = [msgParsed[3], 1]
@@ -26,22 +28,40 @@ def commandHandler
 			$open_sock[msgParsed[3]] = TCPSocket.open(msgParsed[2], dstPort)
 			$open_sock[msgParsed[3]].puts(str_request)
 		end
+		
+		end
 	end
 
 	def self.edged_command(threadMsg)
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
 
+		if (msgParsed.length == 2)
 		# Removes the edge to DST
 		$rt_table.delete(msgParsed[1])
+		end
 	end
 
 	def self.edgeu_command(threadMsg)
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
-
-		# Updates the cost of the edge to DST by COST
-		$rt_table[msgParsed[1]] = [msgParsed[1], msgParsed[2]]
+		
+		if (msgParsed.length == 3)
+		
+		puts msgParsed[2].to_i
+		
+		#if valid cost
+		if (msgParsed[2].to_i > 0)
+		
+			STDOUT.puts( "routing table" + $rt_table[msgParsed[1]].to_s )
+			
+			# Updates the cost of the edge to DST by COST
+			$rt_table[msgParsed[1]][1] = msgParsed[2].to_i
+			
+			STDOUT.puts( "routing table aft" + $rt_table[msgParsed[1]].to_s )
+		end
+		
+		end
 	end
 
 	while (true)
