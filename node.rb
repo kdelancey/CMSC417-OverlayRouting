@@ -1,5 +1,6 @@
 require 'socket'
 require 'thread'
+require 'time'
 
 require './utility'
 require './server'
@@ -11,7 +12,8 @@ $hostname = nil				# Node's hostname
 $commandQueue = Queue.new	# Queue of messages/commands to process
 
 $nodes_map = nil			# Hash of nodes to their corresponding port numbers
-$open_sock = Hash.new		# Hash of all open sockets to this node
+$nextHop_neighbors = Hash.new		# Hash of all open sockets to this node
+							# FORMAT: [cost of nextHop, socket to nextHop]
 
 $config_options = nil		# Array of all config options
 $update_int = nil			# How often routing updates should occur (secs)
@@ -20,8 +22,10 @@ $timeout = nil				# Given timeout of ping (secs)
 
 $node_time = nil 			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
+							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
 
-
+$time = Time.now
+							
 # --------------------- Part 0 --------------------- # 
 
 def edgeb(src_ip, dst_ip, dst)
@@ -137,6 +141,39 @@ def setup(hostname, port, nodes_txt, config_file)
 	# Thread to handle commands that are stored in commandQueue
 	Thread.new {
 		commandHandler
+	}
+	
+	# Thread to handle the creation of Link State Updates
+	Thread.new {
+	
+		sequence_number = 0
+		timer = $time.to_i
+		
+		while(true)
+			if ( $time.to_i - timer == $update_int  )
+				timer = $time.to_i
+				$nextHop_neighbors.each do | edgeName, info |
+					request_message = "LSUR #{$hostname} #{sequence_number}"
+					
+					#Send message for LinkStateUpdateRequest,
+					#FORMAT: LSUR [NODE REQUESTING] [SEQNUM]
+					info[1].puts( request_message )
+				
+				end
+			end
+			
+		sequence_number = sequence_number + 1
+		end
+	}
+	
+	# Thread to handle update of the timer
+	Thread.new {
+		while(true) 
+		
+		sleep(1)
+		$time = $time + 1
+		
+		end
 	}
 
 	# Main thread that takes in standard input for commands
