@@ -49,23 +49,26 @@ class Utility
 
 	# ====================================================================
 	# Writes routing data to "filename", overwrites it if it already
-	# exists. It will follow this format in order of src, dst, nextHop:
+	# exists. Only adds the nodes where an actual path can be taken.
+	# It will follow this format in order of src, dst, nextHop:
 	# Source,Destination,NextHop,Distance
 	# (e.g. n1,n2,n2,1)
 	# ====================================================================
-	def self.dump_table(filename, rt_table, hostname)
+	def self.dump_table(filename)
 		routing_data = ''
 		dst_array = Array.new
 
-		rt_table.each do |key, value|
+		$rt_table.each do | key, value |
 			dst_array << key
 		end
 
 		dst_array.sort!
 
-		dst_array.each do |dst|
-			arr = rt_table[dst]
-			routing_data << "#{hostname},#{dst},#{arr[0]},#{arr[1]}\n"
+		dst_array.each do | dst |
+			arr = $rt_table[dst]
+			if ( arr[0] != 1000000)
+				routing_data << "#{$hostname},#{dst},#{arr[0]},#{arr[1]}\n"
+			end
 		end
 
 		File.open("#{filename}",'w') do |file|
@@ -82,7 +85,7 @@ class Utility
 		status_info = "Name: #{hostname} Port: #{port} Neighbors: "
 		neighbors = Array.new
 
-		rt_table.each do |dst, array|
+		rt_table.each do | dst, array |
 			if (dst.eql?(array[0]))
 				neighbors << dst
 			end

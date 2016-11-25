@@ -9,7 +9,7 @@ def commandHandler
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
 
-		if (msgParsed.length == 4)
+		if (msgParsed.length == 4) # May not need this as commands will always be valid
 		
 		if ($nextHop_neighbors[msgParsed[3]] == nil)
 			# Adds edge of COST 1 to DST
@@ -36,7 +36,7 @@ def commandHandler
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
 
-		if (msgParsed.length == 2)
+		if (msgParsed.length == 2) # Commands will always be valid so omit?
 		# Removes the edges to DST...
 		$nextHop_neighbors.delete(msgParsed[1])
 		
@@ -58,7 +58,7 @@ def commandHandler
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
 		
-		if (msgParsed.length == 3)
+		if (msgParsed.length == 3) # Commands will always be valid so omit?
 		destination_neighbor = msgParsed[1]
 		cost_to_neighbor = msgParsed[2].to_i
 		

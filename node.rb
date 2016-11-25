@@ -12,7 +12,7 @@ $hostname = nil				# Node's hostname
 $commandQueue = Queue.new	# Queue of messages/commands to process
 
 $nodes_map = nil			# Hash of nodes to their corresponding port numbers
-$nextHop_neighbors = Hash.new		# Hash of all open sockets to this node
+$nextHop_neighbors = Hash.new	# Hash of all open sockets to this node
 							# FORMAT: [cost of nextHop, socket to nextHop]
 
 $config_options = nil		# Array of all config options
@@ -20,11 +20,10 @@ $update_int = nil			# How often routing updates should occur (secs)
 $max_pyld = nil				# Maximum size of information that can be sent (bytes)
 $timeout = nil				# Given timeout of ping (secs)
 
-$node_time = nil 			# Internal clock of this node
+$time = Time.now			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
 
-$time = Time.now
 							
 # --------------------- Part 0 --------------------- # 
 
@@ -33,7 +32,7 @@ def edgeb(src_ip, dst_ip, dst)
 end
 
 def dumptable(filename)
-	Utility.dump_table(filename, $rt_table, $hostname)
+	Utility.dump_table(filename)
 end
 
 def shutdown()
@@ -97,7 +96,7 @@ end
 # node
 # ====================================================================
 def commands
-	while(line = STDIN.gets())
+	while (line = STDIN.gets())
 		line = line.strip()
 		arr = line.split(' ')
 		cmd = arr[0]
@@ -133,6 +132,22 @@ def setup(hostname, port, nodes_txt, config_file)
 	$max_pyld 		= $config_options['maxPayload'].to_i
 	$timeout 		= $config_options['pingTimeout'].to_i
 
+	# Adds every other node to this node's routing table
+	# 1000000 indicates that there is no current path to that node
+	nodes_map.each do | node_name, node_distance |
+		if ( !node_name.eql($hostname) )
+			$rt_table[node_name] = ['', 1000000, 0]
+		end
+	end
+
+	# Thread to handle update of the timer
+	Thread.new {
+		while (true) 
+			sleep(0.5)
+			$time = $time + 0.5
+		end
+	}
+
 	# Thread to handle server that will listen for client messages
 	Thread.new {
 		Server.run($port)
@@ -142,39 +157,30 @@ def setup(hostname, port, nodes_txt, config_file)
 	Thread.new {
 		commandHandler
 	}
+
+	# Wait to set up processes
+	sleep(1)
 	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
-	
 		sequence_number = 0
-		timer = $time.to_i
 		
-		while(true)
-			if ( $time.to_i - timer == $update_int  )
-				timer = $time.to_i
-				$nextHop_neighbors.each do | edgeName, info |
-					request_message = "LSUR #{$hostname} #{sequence_number}"
-					
+		while (true)
+			# Sleep until update interval time
+			sleep($update_int)
+
+			$nextHop_neighbors.each do | edgeName, info |
+				request_message = "LSUR #{$hostname} #{sequence_number}"
+
 					#Send message for LinkStateUpdateRequest,
 					#FORMAT: LSUR [NODE REQUESTING] [SEQNUM]
 					info[1].puts( request_message )
-				
+
 				end
+
+				sequence_number = sequence_number + 1
 			end
-			
-		sequence_number = sequence_number + 1
-		end
-	}
-	
-	# Thread to handle update of the timer
-	Thread.new {
-		while(true) 
-		
-		sleep(1)
-		$time = $time + 1
-		
-		end
-	}
+		}
 
 	# Main thread that takes in standard input for commands
 	loop do
