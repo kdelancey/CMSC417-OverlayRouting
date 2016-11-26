@@ -9,10 +9,12 @@ require './commandHandler'
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
 
+$INFINITY = 2147483647		# Indicate no current path to DST
+
 $commandQueue = Queue.new	# Queue of messages/commands to process
 
 $nodes_map = nil			# Hash of nodes to their corresponding port numbers
-$nextHop_neighbors = Hash.new	# Hash of all open sockets to this node
+$neighbors = Hash.new		# Hash of all open sockets (neighbors) to this node
 							# FORMAT: [cost of nextHop, socket to nextHop]
 
 $config_options = nil		# Array of all config options
@@ -133,10 +135,10 @@ def setup(hostname, port, nodes_txt, config_file)
 	$timeout 		= $config_options['pingTimeout'].to_i
 
 	# Adds every other node to this node's routing table
-	# 1000000 indicates that there is no current path to that node
+	# INFINITY indicates that there is no current path to that node
 	nodes_map.each do | node_name, port |
 		if ( !node_name.eql($hostname) )
-			$rt_table[node_name] = ['', 1000000, 0]
+			$rt_table[node_name] = ['', $INFINITY, 0]
 		end
 	end
 
@@ -159,7 +161,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	}
 
 	# Wait to set up processes
-	sleep(1)
+	sleep(0.5)
 	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
@@ -169,7 +171,7 @@ def setup(hostname, port, nodes_txt, config_file)
 			# Sleep until update interval time
 			sleep($update_int)
 
-			$nextHop_neighbors.each do | edgeName, info |
+			$neighbors.each do | edgeName, info |
 				request_message = "LSUR #{$hostname} #{sequence_number}"
 
 				#Send message for LinkStateUpdateRequest,
@@ -182,7 +184,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	end
 
 	# Main thread that takes in standard input for commands
-	loop do
+	while (true)
 		commands
 	end
 end

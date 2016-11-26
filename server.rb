@@ -13,7 +13,7 @@ class Server
 			Thread.start(socket.accept) do |client|
 				
 				while packet = client.gets.chomp
-					$commandQueue.push(packet)
+					$commandQueue.push(requestMatch.post_match)
 				end
 
 				client.close

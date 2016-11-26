@@ -11,7 +11,7 @@ def commandHandler
 
 		if (msgParsed.length == 4) # May not need this as commands will always be valid
 		
-		if ($nextHop_neighbors[msgParsed[3]] == nil)
+		if ($neighbors[msgParsed[3]] == nil)
 			# Adds edge of COST 1 to DST
 			$rt_table[msgParsed[3]] = [msgParsed[3], 1, 0]
 			
@@ -25,8 +25,8 @@ def commandHandler
 			
 			# Open a TCPSocket with the [DSTIP] on the given
 			# port associated with DST in nodes_map
-			$nextHop_neighbors[msgParsed[3]] = [1, TCPSocket.open(msgParsed[2], dstPort)]
-			$nextHop_neighbors[msgParsed[3]][1].puts(str_request)
+			$neighbors[msgParsed[3]] = [1, TCPSocket.open(msgParsed[2], dstPort)]
+			$neighbors[msgParsed[3]][1].puts(str_request)
 		end
 		
 		end
@@ -39,7 +39,7 @@ def commandHandler
 		if (msgParsed.length == 2) # Commands will always be valid so omit?
 
 		# Removes the edge between current node and DST
-		$nextHop_neighbors.delete(msgParsed[1])
+		$neighbors.delete(msgParsed[1])
 		
 		#... if it was a nextHop in the routing table.
 		$rt_table.each do | nodeName, routeInfo |
@@ -67,10 +67,10 @@ def commandHandler
 		#if valid cost
 		# Omit condition? Because COST will always be a valid 32 bit integer
 		# and will always be a valid command
-		if (cost_to_neighbor > 0 && $nextHop_neighbors.has_key?(dst_neighbor) )
+		if (cost_to_neighbor > 0 && $neighbors.has_key?(dst_neighbor) )
 			
-			#ALWAYS Update nextHop_neighbors' cost
-			$nextHop_neighbors[dst_neighbor][0] = cost_to_neighbor
+			#ALWAYS Update neighbors' cost
+			$neighbors[dst_neighbor][0] = cost_to_neighbor
 			
 			# If new cost to neighbor is better than previous route to neighbor,
 			# update routing table with DST as nextHop
@@ -92,7 +92,7 @@ def commandHandler
 		
 		if (msgParsed.length == 3) # Commands will always be valid so omit?
 		
-		if ((requesting_node = $nextHop_neighbors[msgParsed[1]][1]) != nil)
+		if ((requesting_node = $neighbors[msgParsed[1]][1]) != nil)
 
 			#FORMAT OF EACH LOOP: 
 			#[key of node on routing table] ->
@@ -172,12 +172,9 @@ def commandHandler
 			elsif (threadMsg.include? "LSU")
 				puts "got here"
 				lsu_command(threadMsg)
-			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )
-				# String after "REQUEST:"
-				requestCommand = requestMatch.post_match
-				
-				# Push command to be run by node
-				$commandQueue.push(requestCommand)
+			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
+				# Push REQUEST command to be run by node
+				$commandQueue.push(requestMatch.post_match)
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
 			end			

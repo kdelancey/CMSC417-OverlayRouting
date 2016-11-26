@@ -66,7 +66,7 @@ class Utility
 
 		dst_array.each do | dst |
 			arr = $rt_table[dst]
-			if ( arr[1] != 1000000)
+			if ( arr[1] != $INFINITY)
 				routing_data << "#{$hostname},#{dst},#{arr[0]},#{arr[1]}\n"
 			end
 		end
@@ -83,20 +83,18 @@ class Utility
 	# ====================================================================
 	def self.display_status(rt_table, hostname, port)
 		status_info = "Name: #{hostname} Port: #{port} Neighbors: "
-		neighbors = Array.new
+		nodes_neighbors = Array.new
 
-		rt_table.each do | dst, array |
-			if (dst.eql?(array[0]))
-				neighbors << dst
-			end
+		$neighbors.each do | node_name, array |
+			nodes_neighbors << node_name
 		end
 
-		neighbors.sort!
+		nodes_neighbors.sort!
 
-		if (neighbors.size == 1)
-			status_info << neighbors[0]
-		elsif (neighbors.size > 1)
-			status_info << neighbors.join(",")
+		if (nodes_neighbors.size == 1)
+			status_info << nodes_neighbors[0]
+		elsif (nodes_neighbors.size > 1)
+			status_info << nodes_neighbors.join(",")
 		end
 
 		status_info << "\n"
