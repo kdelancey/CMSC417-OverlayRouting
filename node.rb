@@ -134,7 +134,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Adds every other node to this node's routing table
 	# 1000000 indicates that there is no current path to that node
-	nodes_map.each do | node_name, node_distance |
+	nodes_map.each do | node_name, port |
 		if ( !node_name.eql($hostname) )
 			$rt_table[node_name] = ['', 1000000, 0]
 		end
@@ -172,15 +172,14 @@ def setup(hostname, port, nodes_txt, config_file)
 			$nextHop_neighbors.each do | edgeName, info |
 				request_message = "LSUR #{$hostname} #{sequence_number}"
 
-					#Send message for LinkStateUpdateRequest,
-					#FORMAT: LSUR [NODE REQUESTING] [SEQNUM]
-					info[1].puts( request_message )
-
-				end
+				#Send message for LinkStateUpdateRequest,
+				#FORMAT: LSUR [NODE REQUESTING] [SEQNUM]
+				info[1].puts( request_message )
 
 				sequence_number = sequence_number + 1
 			end
-		}
+		end
+	end
 
 	# Main thread that takes in standard input for commands
 	loop do

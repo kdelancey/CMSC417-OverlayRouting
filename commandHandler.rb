@@ -20,7 +20,7 @@ def commandHandler
 			
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
-			# [DSTIP] [SRCIP] [CURRENTNODENAME]
+			# Format: [DSTIP] [SRCIP] [CURRENTNODENAME]
 			str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
 			
 			# Open a TCPSocket with the [DSTIP] on the given
@@ -37,7 +37,8 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		if (msgParsed.length == 2) # Commands will always be valid so omit?
-		# Removes the edges to DST...
+
+		# Removes the edge between current node and DST
 		$nextHop_neighbors.delete(msgParsed[1])
 		
 		#... if it was a nextHop in the routing table.
@@ -59,20 +60,26 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 		
 		if (msgParsed.length == 3) # Commands will always be valid so omit?
-		destination_neighbor = msgParsed[1]
+
+		dst_neighbor = msgParsed[1]
 		cost_to_neighbor = msgParsed[2].to_i
 		
 		#if valid cost
-		if (cost_to_neighbor > 0 && $nextHop_neighbors.has_key?(destination_neighbor) )
+		# Omit condition? Because COST will always be a valid 32 bit integer
+		# and will always be a valid command
+		if (cost_to_neighbor > 0 && $nextHop_neighbors.has_key?(dst_neighbor) )
 			
 			#ALWAYS Update nextHop_neighbors' cost
-			$nextHop_neighbors[destination_neighbor][0] = cost_to_neighbor
+			$nextHop_neighbors[dst_neighbor][0] = cost_to_neighbor
 			
-			#If the new cost to neighbor is better than previous route to neighbor,
-			#update routing table accordingly
-			$rt_table[destination_neighbor][0] = destination_neighbor
-			$rt_table[destination_neighbor][1] = cost_to_neighbor
-			
+			# If new cost to neighbor is better than previous route to neighbor,
+			# update routing table with DST as nextHop
+			if ( $rt_table[dst_neighbor][1] > cost_to_neighbor)
+				$rt_table[dst_neighbor][0] = dst_neighbor
+			end
+
+			# Update DST's COST
+			$rt_table[dst_neighbor][1] = cost_to_neighbor	
 		end
 		
 		end
@@ -83,7 +90,7 @@ def commandHandler
 		# [LSUR] [REQUESTING NODE] [SEQUENCE NUMBER]
 		msgParsed = threadMsg.split(" ")
 		
-		if (msgParsed.length == 3)
+		if (msgParsed.length == 3) # Commands will always be valid so omit?
 		
 		if ((requesting_node = $nextHop_neighbors[msgParsed[1]][1]) != nil)
 
@@ -116,7 +123,7 @@ def commandHandler
 		puts $hostname
 		puts msgParsed
 		
-		if (msgParsed.length == 5)
+		if (msgParsed.length == 5) # Commands will always be valid so omit?
 			
 			# IF ROUTE IS NEW:
 			# If there is no route made for this node yet from [NODE REACHABLE],
@@ -162,10 +169,10 @@ def commandHandler
 				edgeu_command(threadMsg)
 			elsif (threadMsg.include? "LSUR")	
 				lsur_command(threadMsg)
-			elsif (threadMsg.include? "LSU")	
+			elsif (threadMsg.include? "LSU")
 				puts "got here"
 				lsu_command(threadMsg)
-			elsif ( ( requestMatch = /REQUEST:/.match(threadMsg) ) != nil )
+			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )
 				# String after "REQUEST:"
 				requestCommand = requestMatch.post_match
 				

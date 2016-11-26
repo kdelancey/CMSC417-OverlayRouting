@@ -58,15 +58,15 @@ class Utility
 		routing_data = ''
 		dst_array = Array.new
 
-		$rt_table.each do | key, value |
-			dst_array << key
+		$rt_table.each do | node_name, value |
+			dst_array << node_name
 		end
 
 		dst_array.sort!
 
 		dst_array.each do | dst |
 			arr = $rt_table[dst]
-			if ( arr[0] != 1000000)
+			if ( arr[1] != 1000000)
 				routing_data << "#{$hostname},#{dst},#{arr[0]},#{arr[1]}\n"
 			end
 		end
