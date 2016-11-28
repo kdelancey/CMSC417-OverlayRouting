@@ -26,7 +26,7 @@ $time = Time.now			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
 
-$sequence_to_message = Hash.new #Holds a hash of key value pairs in the form: 
+$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
 								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
 								#Done to ensure that a message is not resent on a link/reused on a node.
 							
@@ -145,13 +145,13 @@ def setup(hostname, port, nodes_txt, config_file)
 		end
 	end
 
-	# Thread to handle update of the timer
-	Thread.new {
-		while (true) 
-			sleep(0.5)
-			$time = $time + 0.5
-		end
-	}
+	# # Thread to handle update of the timer
+	# Thread.new {
+		# while (true) 
+			# sleep(0.5)
+			# $time = $time + 0.5
+		# end
+	# }
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
@@ -187,6 +187,9 @@ def setup(hostname, port, nodes_txt, config_file)
 				array_of_outgoing_updates.each do | link_state_packet |
 					#Send message for LinkStateUpdate
 					info[1].puts( link_state_packet )
+					
+					#don't accept duplicates from self
+					$sequence_to_message << link_state_packet
 				end
 
 			end
