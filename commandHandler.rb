@@ -8,15 +8,16 @@ def commandHandler
 	def self.edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
+		dst = msgParsed[3]
 
 		if (msgParsed.length == 4) # May not need this as commands will always be valid
 		
-		if ($neighbors[msgParsed[3]] == nil)
+		if ($neighbors[dst] == nil)
 			# Adds edge of COST 1 to DST
-			$rt_table[msgParsed[3]] = [msgParsed[3], 1, 0]
+			$rt_table[dst] = [dst, 1, 0]
 			
 			# DST's port number
-			dstPort = $nodes_map[msgParsed[3]]
+			dstPort = $nodes_map[dst]
 			
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
@@ -25,8 +26,8 @@ def commandHandler
 			
 			# Open a TCPSocket with the [DSTIP] on the given
 			# port associated with DST in nodes_map
-			$neighbors[msgParsed[3]] = [1, TCPSocket.open(msgParsed[2], dstPort)]
-			$neighbors[msgParsed[3]][1].puts(str_request)
+			$neighbors[dst] = [1, TCPSocket.open(msgParsed[2], dstPort)]
+			$neighbors[dst][1].puts(str_request)
 		end
 		
 		end
@@ -35,11 +36,14 @@ def commandHandler
 	def self.edged_command(threadMsg)
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
+		dst = msgParsed[1]
 
 		if (msgParsed.length == 2) # Commands will always be valid so omit?
 
 		# Removes the edge between current node and DST
-		$neighbors.delete(msgParsed[1])
+		# Closes socket connection between the two nodes
+		$neighbors[dst][1].close
+		$neighbors.delete(dst)
 		
 		#... if it was a nextHop in the routing table.
 		$rt_table.each do | nodeName, routeInfo |
