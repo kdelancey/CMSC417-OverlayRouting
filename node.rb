@@ -141,7 +141,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	# INFINITY indicates that there is no current path to that node
 	nodes_map.each do | node_name, port |
 		if ( !node_name.eql($hostname) )
-			$rt_table[node_name] = ['', $INFINITY, 0]
+			$rt_table[node_name] = [nil, $INFINITY, 0]
 		end
 	end
 
@@ -190,12 +190,8 @@ def setup(hostname, port, nodes_txt, config_file)
 					info[1].puts( link_state_packet )
 				end
 
-				sequence_number = sequence_number + 1
 			end
-<<<<<<< HEAD
-=======
 			sequence_number = sequence_number + 1
->>>>>>> origin/kdelancey-patch-1
 		end
 	end
 
