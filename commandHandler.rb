@@ -8,15 +8,16 @@ def commandHandler
 	def self.edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
+		dst = msgParsed[3]
 
 		if (msgParsed.length == 4) # May not need this as commands will always be valid
 		
-		if ($neighbors[msgParsed[3]] == nil)
+		if ($neighbors[dst] == nil)
 			# Adds edge of COST 1 to DST
-			$rt_table[msgParsed[3]] = [msgParsed[3], 1, 0]
+			$rt_table[dst] = [dst, 1, 0]
 			
 			# DST's port number
-			dstPort = $nodes_map[msgParsed[3]]
+			dstPort = $nodes_map[dst]
 			
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
@@ -25,8 +26,8 @@ def commandHandler
 			
 			# Open a TCPSocket with the [DSTIP] on the given
 			# port associated with DST in nodes_map
-			$neighbors[msgParsed[3]] = [1, TCPSocket.open(msgParsed[2], dstPort)]
-			$neighbors[msgParsed[3]][1].puts(str_request)
+			$neighbors[dst] = [1, TCPSocket.open(msgParsed[2], dstPort)]
+			$neighbors[dst][1].puts(str_request)
 		end
 		
 		end
@@ -35,22 +36,19 @@ def commandHandler
 	def self.edged_command(threadMsg)
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
+		dst = msgParsed[1]
 
 		if (msgParsed.length == 2) # Commands will always be valid so omit?
 
 		# Removes the edge between current node and DST
-		$neighbors.delete(msgParsed[1])
+		# Closes socket connection between the two nodes
+		$neighbors[dst][1].close
+		$neighbors.delete(dst)
 		
-		#... if it was a nextHop in the routing table.
-		$rt_table.each do | nodeName, routeInfo |
-			
-			if ( ( routeInfo[0] <=> msgParsed[1] ) == 0 ) #nextHop
-				$rt_table.delete(nodeName)
-			elsif ( ( nodeName <=> msgParsed[1] ) == 0 ) #the node itself
-				$rt_table.delete(nodeName)
-			end
-			
-		end
+		# Will change nextHop from this node to DST to nil since no path 
+		# is possible and updates the cost to INFINITY
+		$rt_table[dst][0] = nil
+		$rt_table[dst][1] = $INFINITY
 		
 		end
 	end
@@ -58,30 +56,23 @@ def commandHandler
 	def self.edgeu_command(threadMsg)
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
+		dst = msgParsed[1]
+		cost_to_dst = msgParsed[2].to_i
 		
 		if (msgParsed.length == 3) # Commands will always be valid so omit?
-
-		dst_neighbor = msgParsed[1]
-		cost_to_neighbor = msgParsed[2].to_i
 		
-		#if valid cost
-		# Omit condition? Because COST will always be a valid 32 bit integer
-		# and will always be a valid command
-		if (cost_to_neighbor > 0 && $neighbors.has_key?(dst_neighbor) )
+		#ALWAYS Update neighbors' cost
+		$neighbors[dst][0] = cost_to_dst
 			
-			#ALWAYS Update neighbors' cost
-			$neighbors[dst_neighbor][0] = cost_to_neighbor
-			
-			# If new cost to neighbor is better than previous route to neighbor,
-			# update routing table with DST as nextHop
-			if ( $rt_table[dst_neighbor][1] > cost_to_neighbor)
-				$rt_table[dst_neighbor][0] = dst_neighbor
-			end
-
-			# Update DST's COST
-			$rt_table[dst_neighbor][1] = cost_to_neighbor	
+		# If new cost to neighbor is better than previous route to neighbor,
+		# update routing table with DST as nextHop
+		if ( $rt_table[dst][1] > cost_to_dst )
+			$rt_table[dst][0] = dst
 		end
-		
+
+		# Update COST to DST
+		$rt_table[dst][1] = cost_to_dst	
+
 		end
 	end
 	
@@ -143,10 +134,7 @@ def commandHandler
 				edged_command(threadMsg)
 			elsif (threadMsg.include? "EDGEU")	
 				edgeu_command(threadMsg)
-			elsif (threadMsg.include? "LSUR")	
-				lsur_command(threadMsg)
 			elsif (threadMsg.include? "LSU")
-				puts "got here"
 				lsu_command(threadMsg)
 			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
 				# Push REQUEST command to be run by node
