@@ -108,7 +108,7 @@ def commandHandler
 			end
 		end
 		
-		puts "Link State Update"
+		puts "Link State Update Packets"
 		puts $hostname
 		puts msgParsed
 		
