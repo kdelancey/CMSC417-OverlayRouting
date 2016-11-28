@@ -85,30 +85,6 @@ def commandHandler
 		end
 	end
 	
-	def self.lsur_command(threadMsg)
-		# FORMAT RECIEVED: 
-		# [LSUR] [REQUESTING NODE] [SEQUENCE NUMBER]
-		msgParsed = threadMsg.split(" ")
-		
-		if (msgParsed.length == 3) # Commands will always be valid so omit?
-		
-		if ((requesting_node = $neighbors[msgParsed[1]][1]) != nil)
-
-			#FORMAT OF EACH LOOP: 
-			#[key of node on routing table] ->
-			#	[best nextHop node, cost of travel dest, latest sequence # from dst]
-			
-			$rt_table.each do |keyNode, routeInfo|
-			
-				#FORMAT: 
-				#[LSU] [RETURNING NODE] [NODE THIS CAN REACH...] [...AT THIS COST] [SEQ # WHEN REQUEST WAS SENT]
-				requesting_node.puts( "LSU #{$hostname} #{keyNode} #{routeInfo[1]} #{routeInfo[2]}")
-			end
-		end
-		
-		end
-	end
-	
 	def self.lsu_command(threadMsg)
 		# FORMAT RECIEVED: 
 		# [LSU] [NODE OF ORIGIN] [NODE REACHABLE] [COST OF REACH] [SEQ # WHEN REQUEST WAS SENT]

@@ -170,13 +170,22 @@ def setup(hostname, port, nodes_txt, config_file)
 		while (true)
 			# Sleep until update interval time
 			sleep($update_int)
+			
+			array_of_outgoing_updates = Array.new
+			
+			$neighbors.each do | edgeName, info |
+				# FORMAT:
+				# [LSU] [NODE OF ORIGIN] [NODE REACHABLE] [COST OF REACH] [SEQ # WHEN REQUEST WAS SENT]
+				array_of_outgoing_updates << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_number}"
+			end
 
 			$neighbors.each do | edgeName, info |
-				request_message = "LSUR #{$hostname} #{sequence_number}"
-
-				#Send message for LinkStateUpdateRequest,
-				#FORMAT: LSUR [NODE REQUESTING] [SEQNUM]
-				info[1].puts( request_message )
+			
+				#send out link state packets of neighbors to each neighbor
+				array_of_outgoing_updates.each do | link_state_packet |
+					#Send message for LinkStateUpdate
+					info[1].puts( link_state_packet )
+				end
 
 				sequence_number = sequence_number + 1
 			end
