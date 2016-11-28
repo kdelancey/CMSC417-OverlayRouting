@@ -49,9 +49,8 @@ def commandHandler
 		$rt_table.each do | nodeName, routeInfo |
 			
 			if ( ( routeInfo[0] <=> msgParsed[1] ) == 0 ) #nextHop
-				$rt_table.delete(nodeName)
-			elsif ( ( nodeName <=> msgParsed[1] ) == 0 ) #the node itself
-				$rt_table.delete(nodeName)
+				routeInfo[0] = nil
+				routeInfo[1] = $INFINITY
 			end
 			
 		end
@@ -99,10 +98,12 @@ def commandHandler
 		cost_of_reach = msgParsed[3].to_int
 		seq_num = msgParsed[4].to_int
 		
+		puts "LSU got here"
+		
 		#If this message has been recieve before, return and do nothing
-		if ( (sequence_to_message[seq_num] != null) and\
-			 (sequence_to_message[seq_num]has_key?(node_of_origin)) and\
-			 (sequence_to_message[seq_num][node_of_origin].contains(node_reachable)) )
+		if ( ($sequence_to_message[seq_num] != nil) and\
+			 ($sequence_to_message[seq_num].has_key?(node_of_origin)) and\
+			 ($sequence_to_message[seq_num][node_of_origin].contains(node_reachable)) )
 			return
 		else # else, end out message along all links (except possibly a linked neighbor who sent it)
 			$neighbors.each do | edgeName, info |
@@ -110,6 +111,12 @@ def commandHandler
 					info[1].puts( threadMsg )
 				end
 			end
+			if ($sequence_to_message[seq_num][node_of_origin] == nil)
+				$sequence_to_message[seq_num][node_of_origin] = [node_reachable]
+			else 
+				$sequence_to_message[seq_num][node_of_origin] << node_reachable
+			end
+			
 		end
 		
 		puts "Link State Update"
@@ -172,10 +179,7 @@ def commandHandler
 				edged_command(threadMsg)
 			elsif (threadMsg.include? "EDGEU")	
 				edgeu_command(threadMsg)
-			elsif (threadMsg.include? "LSUR")	
-				lsur_command(threadMsg)
 			elsif (threadMsg.include? "LSU")
-				puts "got here"
 				lsu_command(threadMsg)
 			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
 				# Push REQUEST command to be run by node

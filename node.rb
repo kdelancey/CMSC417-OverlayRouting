@@ -139,8 +139,8 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
-	nodes_map.each do | node_name, port |
-		if ( !node_name.eql($hostname) )
+	$nodes_map.each do | node_name, port |
+		if ( !node_name.eql?($hostname) )
 			$rt_table[node_name] = [nil, $INFINITY, 0]
 		end
 	end
@@ -193,7 +193,7 @@ def setup(hostname, port, nodes_txt, config_file)
 			end
 			sequence_number = sequence_number + 1
 		end
-	end
+	}
 
 	# Main thread that takes in standard input for commands
 	while (true)
