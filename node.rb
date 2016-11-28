@@ -163,6 +163,8 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 	
+	sleep(0.5)
+	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
 		sequence_number = 0
