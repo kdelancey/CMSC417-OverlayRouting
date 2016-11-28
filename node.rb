@@ -162,9 +162,6 @@ def setup(hostname, port, nodes_txt, config_file)
 	Thread.new {
 		commandHandler
 	}
-
-	# Wait to set up processes
-	sleep(0.5)
 	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {

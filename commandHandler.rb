@@ -62,16 +62,13 @@ def commandHandler
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
 		
+		puts "got to edgeU"
+		
 		if (msgParsed.length == 3) # Commands will always be valid so omit?
 
 		dst_neighbor = msgParsed[1]
 		cost_to_neighbor = msgParsed[2].to_i
 		
-		#if valid cost
-		# Omit condition? Because COST will always be a valid 32 bit integer
-		# and will always be a valid command
-		if (cost_to_neighbor > 0 && $neighbors.has_key?(dst_neighbor) )
-			
 			#ALWAYS Update neighbors' cost
 			$neighbors[dst_neighbor][0] = cost_to_neighbor
 			
@@ -83,8 +80,7 @@ def commandHandler
 
 			# Update DST's COST
 			$rt_table[dst_neighbor][1] = cost_to_neighbor	
-		end
-		
+			
 		end
 	end
 	
@@ -95,10 +91,8 @@ def commandHandler
 		
 		node_of_origin = msgParsed[1]
 		node_reachable = msgParsed[2]
-		cost_of_reach = msgParsed[3].to_int
-		seq_num = msgParsed[4].to_int
-		
-		puts "LSU got here"
+		cost_of_reach = msgParsed[3].to_i
+		seq_num = msgParsed[4].to_i
 		
 		#If this message has been recieve before, return and do nothing
 		if ( ($sequence_to_message[seq_num] != nil) and\
@@ -119,9 +113,7 @@ def commandHandler
 			
 		end
 		
-		puts "Link State Update"
-		puts $hostname
-		puts msgParsed
+		puts threadMsg
 		
 		if (msgParsed.length == 5) # Commands will always be valid so omit?
 		
