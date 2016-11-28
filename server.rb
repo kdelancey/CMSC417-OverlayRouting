@@ -13,7 +13,11 @@ class Server
 			Thread.start(socket.accept) do |client|
 				
 				while packet = client.gets.chomp
+<<<<<<< HEAD
 					$commandQueue.push(requestMatch.post_match)
+=======
+					$commandQueue.push(packet)
+>>>>>>> origin/kdelancey-patch-1
 				end
 
 				client.close

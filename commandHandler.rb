@@ -95,33 +95,58 @@ def commandHandler
 		cost_of_reach = msgParsed[3].to_int
 		seq_num = msgParsed[4].to_int
 		
+		#If this message has been recieve before, return and do nothing
+		if ( (sequence_to_message[seq_num] != null) and\
+			 (sequence_to_message[seq_num]has_key?(node_of_origin)) and\
+			 (sequence_to_message[seq_num][node_of_origin].contains(node_reachable)) )
+			return
+		else # else, end out message along all links (except possibly a linked neighbor who sent it)
+			$neighbors.each do | edgeName, info |
+				if (edgeName != node_of_origin)
+					info[1].puts( threadMsg )
+				end
+			end
+		end
+		
 		puts "Link State Update"
 		puts $hostname
 		puts msgParsed
 		
 		if (msgParsed.length == 5) # Commands will always be valid so omit?
-			
-			# IF ROUTE IS NEW:
-			# If there is no route made for this node yet from [NODE REACHABLE],
-			# make one using [NODE OF ORIGIN] as the nextHop, and [COST OF REACH] as cost.
+		
+			# FORMAT:
+			# [best nextHop node, cost of travel dest, latest sequence # from dst]
 			#
-			# IF ROUTE IS OLD:
-			# Check if, for [NODE REACHABLE] in routing table, the sequence # is younger
-			# than [SEQ # WHEN REQUEST WAS SENT]. If the sequence # already on the routing table
-			# is old, update with the new cost. Else, do nothing, because it may contain old
-			# COST information, thus bad.
-			# ALSO, if the route is old, and seq number is newer, check cost to that node.
-			# If the nextHop doesn't provide a better hop, forget it!
+			# Do Dikjstras
+			# Check the routing table if the [NODE OF ORIGIN] is on the routing
+			# table. If it is, make its nextHop the nextHop for [NODE REACHABLE],
+			# and add cost of trip to [NODE OF ORIGIN] plus [COST OF REACH].
+			# If the routing table is working correctly, there should be no instance
+			# where the [NODE OF ORIGIN] is not on the routing table (or else how are
+			# we recieving messages from it?)
 			
-			if ( (route_entry = $rt_table[node_reachable]) == nil )
-			
-				$rt_table[node_reachable] = [node_of_origin, cost_of_reach, seq_num]
+			if ( $rt_table.has_key?(node_of_origin) )
+				nextHop_node = $rt_table[node_of_origin][0]
+				cost_of_travel_to_node_of_origin = $rt_table[node_of_origin][1]
+				possible_new_cost_of_travel = \
+								( cost_of_travel_to_node_of_origin + cost_of_reach )
 				
-			elsif (route_entry[2] < seq_num) #is a newer update
-			
-				if ( route_entry[1] > cost_of_reach ) #has a better cost than current route
-					$rt_table[node_reachable] = [node_of_origin, cost_of_reach, seq_num]
+				if ( $rt_table.has_key?(node_reachable) )
+					prev_cost_of_travel_to_node_reachable = $rt_table[node_reachable][1]
+					
+					# If new cost of travel is better....
+					if ( prev_cost_of_travel_to_node_reachable > possible_new_cost_of_travel )
+						$rt_table[node_reachable] = [nextHop_node, \
+														possible_new_cost_of_travel, \
+														seq_num]
+					end #else do nothing!
+				
 				end
+				
+				# If not already on the routing table, add to routing table
+				$rt_table[node_reachable] = [nextHop_node, \
+											 possible_new_cost_of_travel, \
+													seq_num]
 				
 			end
 			

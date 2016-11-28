@@ -26,6 +26,9 @@ $time = Time.now			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
 
+$sequence_to_message = Hash.new #Holds a hash of key value pairs in the form: 
+								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
+								#Done to ensure that a message is not resent on a link/reused on a node.
 							
 # --------------------- Part 0 --------------------- # 
 
@@ -189,6 +192,10 @@ def setup(hostname, port, nodes_txt, config_file)
 
 				sequence_number = sequence_number + 1
 			end
+<<<<<<< HEAD
+=======
+			sequence_number = sequence_number + 1
+>>>>>>> origin/kdelancey-patch-1
 		end
 	end
 
