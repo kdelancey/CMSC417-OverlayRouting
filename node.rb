@@ -136,10 +136,9 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
-	# Routing table will not include itself as one of the routes
 	nodes_map.each do | node_name, port |
 		if ( !node_name.eql($hostname) )
-			$rt_table[node_name] = [nil, $INFINITY, 0]
+			$rt_table[node_name] = ['', $INFINITY, 0]
 		end
 	end
 
@@ -174,7 +173,6 @@ def setup(hostname, port, nodes_txt, config_file)
 			
 			array_of_outgoing_updates = Array.new
 			
-			# Creates LSU packet for each neighbor to this node
 			$neighbors.each do | edgeName, info |
 				# FORMAT:
 				# [LSU] [NODE OF ORIGIN] [NODE REACHABLE] [COST OF REACH] [SEQ # WHEN REQUEST WAS SENT]
@@ -189,9 +187,8 @@ def setup(hostname, port, nodes_txt, config_file)
 					info[1].puts( link_state_packet )
 				end
 
+				sequence_number = sequence_number + 1
 			end
-
-			sequence_number = sequence_number + 1
 		end
 	end
 

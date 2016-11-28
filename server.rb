@@ -12,8 +12,8 @@ class Server
 		while (true)
 			Thread.start(socket.accept) do |client|
 				
-				while packet = client.gets
-					$commandQueue.push(packet)
+				while packet = client.gets.chomp
+					$commandQueue.push(requestMatch.post_match)
 				end
 
 				client.close
