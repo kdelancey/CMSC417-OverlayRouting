@@ -1,21 +1,21 @@
 # ----------------- PROJECT OBJECTS ---------------- # 
 
 class Header
-	attr_reader: hdr_sz #header size in bytes
-	attr_reader: src_nd #source node
-	attr_reader: dst_nd #destination node
-	attr_reader: pkt_id #packet id
-	attr_reader: msg_lngth #fragment size in bytes
-	attr_reader: more_frgmnts #more fragments? 0 if no, 1 if yes
-	attr_reader: ordr_of_fragment #place in order of fragments
-	attr_accessor: ttl #time to live
+	attr_reader :hdr_sz #header size in bytes
+	attr_reader :src_nd #source node
+	attr_reader :dst_nd #destination node
+	attr_reader :pkt_id #packet id
+	attr_reader :msg_lngth #fragment size in bytes
+	attr_reader :more_frgmnts #more fragments? 0 if no, 1 if yes
+	attr_reader :ordr_of_fragment #place in order of fragments
+	attr_accessor :ttl #time to live
 	
 	# initialize creates a header object.
 	# this header object will be initialized with 
 	# this header object will be used in another class, packet,
 	# that upon creation, will 
-	def initialize( source, destination, id, message_length\
-					additional_fragments, order_fragment, time_to_live )
+	def initialize(source, destination, id, message_length, additional_fragments, 
+		order_fragment, time_to_live)
 		
 		@src_nd = source #source node
 		@dst_nd = destination #destination node
@@ -26,27 +26,6 @@ class Header
 		@ttl = time_to_live #time to live
 		
 		length_of_header # create header size
-		
-	end
-	
-	# Parse the given Header string, 
-	# Return an array/collection of objects representing each of the sections
-	# of the header.
-	# This is a "static" method.
-	def Header.parse_header( hdr_str )
-		ary_of_hdr_vals = hdr_str.split("|")
-		
-		ret_array = Array.new(8)
-		ret_array[0] = ary_of_hdr_vals[0].to_i
-		ret_array[1] = ary_of_hdr_vals[1]
-		ret_array[2] = ary_of_hdr_vals[2]
-		ret_array[3] = ary_of_hdr_vals[3].to_i
-		ret_array[4] = ary_of_hdr_vals[4].to_i
-		ret_array[5] = ary_of_hdr_vals[5].to_i
-		ret_array[6] = ary_of_hdr_vals[6].to_i
-		ret_array[7] = ary_of_hdr_vals[7].to_i
-		
-		return ret_array
 		
 	end
 	

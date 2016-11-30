@@ -1,32 +1,43 @@
 require 'socket'
-require 'utility'
 require 'thread'
+require 'time'
 
-$port = nil					# this node's port number
-$hostname = nil				# this node's hostname
+require './utility'
+require './server'
+require './commandHandler'
 
-$commandQueue = nil			# the queue of commands to run
-$serverThread = nil			# the thread receiving incoming messages (omit?)
-$connectionThread = nil		# the thread sending outgoing messages (omit?)
-$nodes_map = nil			# hash of nodes to their corresponding port numbers
+$port = nil					# Node's port number
+$hostname = nil				# Node's hostname
 
-$config_options = nil		# array of all config options
-$update_int = nil			# how often routing updates should occur (secs)
-$max_pyld = nil				# the maximum size of information across one message (bytes)
-$timeout = nil				# given timeout of ping (secs)
+$INFINITY = 2147483647		# Indicate no current path to DST
 
-$node_time = nil 			# internal clock of this node
-$rt_table = Hash.new 		# routing table of this node
+$commandQueue = Queue.new	# Queue of messages/commands to process
 
+$nodes_map = nil			# Hash of nodes to their corresponding port numbers
+$neighbors = Hash.new		# Hash of all open sockets (neighbors) to this node
+							# FORMAT: [cost of nextHop, socket to nextHop]
 
+$config_options = nil		# Array of all config options
+$update_int = nil			# How often routing updates should occur (secs)
+$max_pyld = nil				# Maximum size of information that can be sent (bytes)
+$timeout = nil				# Given timeout of ping (secs)
+
+$time = Time.now			# Internal clock of this node
+$rt_table = Hash.new 		# Routing table of this node
+							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
+
+$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
+								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
+								#Done to ensure that a message is not resent on a link/reused on a node.
+							
 # --------------------- Part 0 --------------------- # 
 
 def edgeb(src_ip, dst_ip, dst)
-	commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
+	$commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
 end
 
 def dumptable(filename)
-	Utility.dump_table(filename, $rt_table, $hostname)
+	Utility.dump_table(filename)
 end
 
 def shutdown()
@@ -38,49 +49,49 @@ end
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(cmd)
-	STDOUT.puts "EDGED: not implemented"
+def edged(dst)
+	$commandQueue.push("EDGED #{dst}")
 end
 
-def edgeu(cmd)
-	STDOUT.puts "EDGEU: not implemented"
+def edgeu(dst, cost)
+	$commandQueue.push("EDGEU #{dst} #{cost}")
 end
 
 def status()
-	STDOUT.puts "STATUS: not implemented"
+	STDOUT.puts(Utility.display_status($rt_table, $hostname, $port))
 end
 
 
 # --------------------- Part 2 --------------------- # 
 
-def sendmsg(cmd)
+def sendmsg()
 	STDOUT.puts "SENDMSG: not implemented"
 end
 
-def ping(cmd)
+def ping()
 	STDOUT.puts "PING: not implemented"
 end
 
-def traceroute(cmd)
+def traceroute()
 	STDOUT.puts "TRACEROUTE: not implemented"
 end
 
-def ftp(cmd)
+def ftp()
 	STDOUT.puts "FTP: not implemented"
 end
 
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb(cmd)
+def circuitb()
 	STDOUT.puts "CIRCUITB: not implemented"
 end
 
-def circuitm(cmd)
+def circuitm()
 	STDOUT.puts "CIRCUITM: not implemented"
 end
 
-def circuitd(cmd)
+def circuitd()
 	STDOUT.puts "CIRCUITD: not implemented"
 end
 
@@ -90,82 +101,27 @@ end
 # node
 # ====================================================================
 def commands
-
-	while(line = STDIN.gets())
+	while (line = STDIN.gets())
 		line = line.strip()
 		arr = line.split(' ')
 		cmd = arr[0]
-		args = arr[1..-1]
 		case cmd
 		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(args)
-		when "EDGEU"; edgew(args)
+		when "EDGED"; edged(arr[1])
+		when "EDGEU"; edgeu(arr[1], arr[2])
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg(args)
-		when "PING"; ping(args)
-		when "TRACEROUTE"; traceroute(args)
-		when "FTP"; ftp(args)
-		when "CIRCUITB"; circuitb(args)
-		when "CIRCUITM"; circuitm(args)
-		when "CIRCUITD"; circuitd(args)
+		when "SENDMSG"; sendmsg()
+		when "PING"; ping()
+		when "TRACEROUTE"; traceroute()
+		when "FTP"; ftp()
+		when "CIRCUITB"; circuitb()
+		when "CIRCUITM"; circuitm()
+		when "CIRCUITD"; circuitd()
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
-
-end
-
-# ====================================================================
-# Pops off commands from commandQueue to run them
-# ====================================================================
-def commandHandler
-
-	#possibly place this elsewhere than setup, cuz it will get big
-		
-	#within thread, hold hash from destination to other nodes socket
-	nodeNameToSocketHash = Hash.new
-		
-	#constantly see if there is a message to pop on queue, if so...
-		#either EDGEB, which will create connection, and update the table
-		#within this thread, OR
-		#read the destination from parsing the packet to send message
-
-	#commandQueue has message/command to be sent out. 
-	#threadMsg has message/command to be processed.
-	while (true)
-		threadMsg = nil
-		if (!commandQueue.empty?)
-			threadMsg = commandQueue.pop
-			
-			#LATER PLACED INTO ANOTHER METHOD for cleanliness
-				
-			#if message is EDGEB....
-			if ( threadMsg.include? "EDGEB" )
-				#Format: [EDGEB] [SRCIP] [DSTIP] [DST]
-				msgParsed = threadMsg.split(" ");
-					
-				#If the [DST] (destination node) given in EDGEB exists 
-				#	in nodes_map, then it is a valid node to connect with
-					
-				#Open a TCPSocket with the [DSTIP] (dest ip) on the given
-				#	portNum associated with DST on nodes_map
-				portNum = (nodes_map[msgParsed[3]]).to_i
-				if ( nodes_map[msgParsed[3]] != nil )
-					nodeNameToSocketHash[msgParsed[3]] = \
-					TCPSocket.new(msgParsed[2], portNum)
-				end
-
-				# Adds edge of cost 1 to this node's routing table
-				$rt_table[msgParsed[3]] = [msgParsed[3], 1]
-					
-			#elsif  ( verify it has valid header ) TODO
-			else #if message is packet....
-			 #do nothing for now
-			end			
-		end
-	end	
-
 end
 
 # ====================================================================
@@ -181,20 +137,68 @@ def setup(hostname, port, nodes_txt, config_file)
 	$max_pyld 		= $config_options['maxPayload'].to_i
 	$timeout 		= $config_options['pingTimeout'].to_i
 
-	$commandQueue = Queue.new
+	# Adds every other node to this node's routing table
+	# INFINITY indicates that there is no current path to that node
+	$nodes_map.each do | node_name, port |
+		if ( !node_name.eql?($hostname) )
+			$rt_table[node_name] = [nil, $INFINITY, 0]
+		end
+	end
+
+	# # Thread to handle update of the timer
+	# Thread.new {
+		# while (true) 
+			# sleep(0.5)
+			# $time = $time + 0.5
+		# end
+	# }
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
-		Server.listen(hostname, port)
+		Server.run($port)
 	}	
 
 	# Thread to handle commands that are stored in commandQueue
 	Thread.new {
 		commandHandler
 	}
+	
+	sleep(0.5)
+	
+	# Thread to handle the creation of Link State Updates
+	Thread.new {
+		sequence_number = 0
+		
+		while (true)
+			# Sleep until update interval time
+			sleep($update_int)
+			
+			array_of_outgoing_updates = Array.new
+			
+			$neighbors.each do | edgeName, info |
+				# FORMAT:
+				# [LSU] [NODE OF ORIGIN] [NODE REACHABLE] [COST OF REACH] [SEQ # WHEN REQUEST WAS SENT]
+				array_of_outgoing_updates << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_number}"
+			end
+
+			$neighbors.each do | edgeName, info |
+			
+				#send out link state packets of neighbors to each neighbor
+				array_of_outgoing_updates.each do | link_state_packet |
+					#Send message for LinkStateUpdate
+					info[1].puts( link_state_packet )
+					
+					#don't accept duplicates from self
+					$sequence_to_message << link_state_packet
+				end
+
+			end
+			sequence_number = sequence_number + 1
+		end
+	}
 
 	# Main thread that takes in standard input for commands
-	loop do
+	while (true)
 		commands
 	end
 end

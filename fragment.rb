@@ -1,4 +1,4 @@
-require 'header'
+require './header'
 
 class Fragment
 	@hdr
@@ -12,4 +12,13 @@ class Fragment
 	def to_s
 		return hdr.to_s + frgmt
 	end
+	
+	def get_hdr
+		@hdr
+	end
+	
+	def get_payload
+		@frgmt
+	end
+	
 end
