@@ -98,6 +98,7 @@ def commandHandler
 
 		$neighbors.each do | edgeName, info |	
 			# Send message for LinkStateUpdate
+			if ( !$lst_received[src].include?(edgeName) )
 				info[1].puts( lsu_packet )
 			end
 		end
