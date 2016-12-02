@@ -5,6 +5,7 @@ require 'time'
 require './utility'
 require './server'
 require './commandHandler'
+require './nodeGraph'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
@@ -25,8 +26,12 @@ $timeout = nil				# Given timeout of ping (secs)
 $time = Time.now			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
+$sequence_num = 0			# Sequence number for link state packets
+$lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
-$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
+$graph = NodeGraph.new		# Graph that represents the network with vertices and edges
+
+#$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
 								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
 								#Done to ensure that a message is not resent on a link/reused on a node.
 							
@@ -145,13 +150,13 @@ def setup(hostname, port, nodes_txt, config_file)
 		end
 	end
 
-	# # Thread to handle update of the timer
-	# Thread.new {
-		# while (true) 
-			# sleep(0.5)
-			# $time = $time + 0.5
-		# end
-	# }
+	# Thread to handle update of the timer
+	Thread.new {
+		while (true) 
+			sleep(0.5)
+			$time = $time + 0.5
+		end
+	}
 
 	# Thread to handle server that will listen for client messages
 	Thread.new {
@@ -163,39 +168,38 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 	
-	sleep(0.5)
-	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
-		sequence_number = 0
+		sequence_to_start = 1
 		
 		while (true)
 			# Sleep until update interval time
 			sleep($update_int)
-			
-			array_of_outgoing_updates = Array.new
+			$lst_received = Hash.new {|h,k| h[k]=[]}
+
+			packet_array = Array.new
 			
 			$neighbors.each do | edgeName, info |
-				# FORMAT:
-				# [LSU] [NODE OF ORIGIN] [NODE REACHABLE] [COST OF REACH] [SEQ # WHEN REQUEST WAS SENT]
-				array_of_outgoing_updates << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_number}"
+				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{$sequence_to_start} #{$hostname}"
 			end
 
-			$neighbors.each do | edgeName, info |
-			
+			$neighbors.each do | edgeName, info |	
 				#send out link state packets of neighbors to each neighbor
-				array_of_outgoing_updates.each do | link_state_packet |
+				packet_array.each do | link_state_packet |
 					#Send message for LinkStateUpdate
 					info[1].puts( link_state_packet )
-					
-					#don't accept duplicates from self
-					$sequence_to_message << link_state_packet
 				end
-
 			end
-			sequence_number = sequence_number + 1
+
+			sequence_to_start = sequence_to_start + 1
+			$sequence_num = $sequence_num + 1
+
+			$graph.update_routing_table($hostname)
 		end
 	}
+
+	sleep(0.5)
 
 	# Main thread that takes in standard input for commands
 	while (true)

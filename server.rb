@@ -13,7 +13,6 @@ class Server
 			Thread.start(socket.accept) do |client|
 				
 				while packet = client.gets.chomp
-					#puts packet
 					$commandQueue.push(packet)
 				end
 
