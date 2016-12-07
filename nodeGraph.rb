@@ -128,7 +128,7 @@ class NodeGraph
 
     # Updates routing table of graph
     def self.update_routing_table(src)
-        table = Hash.new {|h,k| h[k]=[]}
+        table = Hash.new { | h, k | h[k] = [] }
 
         src_path_to_all(src)
 

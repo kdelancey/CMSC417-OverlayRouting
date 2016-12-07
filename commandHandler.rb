@@ -12,7 +12,7 @@ def commandHandler
 
 		if ($neighbors[dst] == nil)
 			# Adds edge of COST 1 to DST
-			$rt_table[dst] = [dst, 1, 0]
+			$rt_table[dst] = [dst, 1]
 
 			# Add edge to graph
 			$graph.add_edge($hostname, dst, 1)
@@ -53,17 +53,15 @@ def commandHandler
 		dst = msgParsed[1]
 		cost = msgParsed[2].to_i
 
-		#ALWAYS Update neighbors' cost
+		# ALWAYS update DST's cost
 		$neighbors[dst][0] = cost
 
-		# If new cost to neighbor is better than previous route to neighbor,
-		# update routing table with DST as nextHop
+		# If new cost to DST is better than previous route to DST,
+		# update routing table with DST as nextHop with new cost
 		if ( $rt_table[dst][1] > cost )
 			$rt_table[dst][0] = dst
+			$rt_table[dst][1] = cost
 		end
-
-		# Update DST's COST
-		$rt_table[dst][1] = cost
 
 		# Update edge to dst with cost
 		$graph.add_edge($hostname, dst, cost)
@@ -90,14 +88,18 @@ def commandHandler
 			return
 		end
 
-		lsu_packet = "LSU #{src} #{dst} #{cost} #{seq_num} #{node_sent_from}"
+		# Send out new link state packet coming from this node
+		lsu_packet = "LSU #{src} #{dst} #{cost} #{seq_num} #{$hostname}"
 
+		# Add to received lst packets to ensure it won't send same one
 		$lst_received[src] << node_sent_from
 
 		$graph.add_edge(src, dst, cost)
 
 		$neighbors.each do | edgeName, info |	 
 			# Send message for LinkStateUpdate
+			# Check whether it received this specific lst packet from
+			# this neighbor
 			if ( !$lst_received[src].include?(edgeName) )
 				info[1].puts( lsu_packet )
 			end

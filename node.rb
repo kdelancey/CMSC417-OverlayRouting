@@ -26,9 +26,11 @@ $update_int = nil			# How often routing updates should occur (secs)
 $max_pyld = nil				# Maximum size of information that can be sent (bytes)
 $timeout = nil				# Given timeout of ping (secs)
 
-$time = Time.now			# Internal clock of this node
+$time = nil					# Internal clock of this node
+
 $rt_table = Hash.new 		# Routing table of this node
-							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
+							# FORMAT: [best nextHop node, cost of travel dest]
+
 $sequence_num = 0			# Sequence number for link state packets
 $lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
@@ -149,12 +151,14 @@ def setup(hostname, port, nodes_txt, config_file)
 	# INFINITY indicates that there is no current path to that node
 	$nodes_map.each do | node_name, port |
 		if ( !node_name.eql?($hostname) )
-			$rt_table[node_name] = [nil, $INFINITY, 0]
+			$rt_table[node_name] = [nil, $INFINITY]
 		end
 	end
 
 	# Thread to handle update of the timer
 	Thread.new {
+		$time = Time.now
+
 		while (true) 
 			sleep(0.5)
 			$time = $time + 0.5
@@ -173,18 +177,22 @@ def setup(hostname, port, nodes_txt, config_file)
 	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
+		sleep(2)
 		sequence_to_start = 1
 		
 		while (true)
 			# Sleep until update interval time
 			sleep($update_int)
-			$lst_received = Hash.new {|h,k| h[k]=[]}
 
+			# Reset list of received lst packets every update interval
+			$lst_received = Hash.new { | h, k | h[k] = [] }
+
+			# Set up lst packets to be sent out
 			packet_array = Array.new
 			
 			$neighbors.each do | edgeName, info |
 				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{$sequence_to_start} #{$hostname}"
+				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
 			end
 
 			$neighbors.each do | edgeName, info |	
@@ -195,14 +203,16 @@ def setup(hostname, port, nodes_txt, config_file)
 				end
 			end
 
+			# Ensures that the first set of link state packets are sent out
+			if ( sequence_to_start != 1 )
+				$sequence_num = $sequence_num + 1
+			end
+
 			sequence_to_start = sequence_to_start + 1
-			$sequence_num = $sequence_num + 1
 
 			$graph.update_routing_table($hostname)
 		end
 	}
-
-	sleep(0.5)
 
 	# Main thread that takes in standard input for commands
 	while (true)
