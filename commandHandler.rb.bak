@@ -126,9 +126,6 @@ def commandHandler
 		# Get array of fragments to send from packet
 		ary_of_fragments = segment_of_message.get_fragments
 		
-		# TODO: Make this loop send out messages
-		# of fragments. Feeling this will take extensive
-		# debugging.
 		ary_of_fragments.each do | fragment_to_send |
 			
 		end
