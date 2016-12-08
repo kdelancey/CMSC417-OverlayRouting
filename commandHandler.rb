@@ -68,8 +68,7 @@ def commandHandler
 	end
 
 	def self.lsu_command(threadMsg)
-		# FORMAT RECIEVED: 
-		# [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+		# FORMAT of msgParsed: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 		msgParsed = threadMsg.split(" ")
 		
 		src = msgParsed[1]
@@ -94,10 +93,11 @@ def commandHandler
 		# Add to received lst packets to ensure it won't send same one
 		$lst_received[src] << node_sent_from
 
+		# Add edge to graph
 		$graph.add_edge(src, dst, cost)
 
+		# Send out this link state update to all applicable neighbors
 		$neighbors.each do | edgeName, info |	 
-			# Send message for LinkStateUpdate
 			# Check whether it received this specific lst packet from
 			# this neighbor
 			if ( !$lst_received[src].include?(edgeName) )
@@ -106,10 +106,8 @@ def commandHandler
 		end
 	end
 	
-	self.sendmsg_command(threadMsg) 
-		# FORMAT:
-		# SNDMSG [DST] [MSG]
-
+	def self.sendmsg_command(threadMsg) 
+		# FORMAT of msgParsed: [SENDMSG] [DST] [MSG]
 		msgParsed = threadMsg.split(" ")
 		
 		dst = msgParsed[1]
@@ -137,6 +135,85 @@ def commandHandler
 	
 	end
 
+	def self.sendping_command(threadMsg)
+		# FORMAT of msgParsed: [SENDPING] [DST] [SEQ ID] [ACK] [TIME SENT]
+		msgParsed = threadMsg.split(" ")
+
+		dst = msgParsed[1]
+		ping_seq_id = msgParsed[2]
+		ping_ack = msgParsed[3]
+		time_sent = msgParsed[4].to_f
+
+		# If DST has been reached and received ACK
+		if ( ($hostname.eql?(dst)) && (ping_ack == true) )
+			round_trip_time = $time.to_f - time_sent
+			if ( round_trip_time > $pingTimeout )
+				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+			else
+				STDOUT.puts "#{ping_seq_id} #{dst} #{round_trip_time}"
+			end
+
+		# Reached DST, but hasn't received ACK yet	
+		elsif ( ($hostname.eql?(dst)) && (ping_ack == false) )
+			ping_ack = true
+			ping_packet = "SENDPING #{dst} #{ping_seq_id} #{ping_ack} #{time_sent}"
+			$commandQueue.push(ping_packet)
+
+		# Send ping to nextHop of current node
+		else
+			pingNextHop = $rt_table[dst][0]
+
+			# No path to get to DST
+			if ( pingNextHop == nil )
+				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+			else
+				$neighbors[pingNextHop][1].puts(threadMsg)
+			end
+		end				
+	end
+
+	def self.ping_command(threadMsg)
+		# FORMAT of msgParsed: [PING] [DST] [NUM PINGS] [DELAY]
+		msgParsed = threadMsg.split(" ")
+		
+		dst = msgParsed[1]
+		num_pings = msgParsed[2].to_i
+		delay = msg[3].to_i
+
+		ping_seq_id = 0
+
+		# Ping itself
+		if ( $hostname.eql?(dst) )
+			while ( num_pings > 0 )
+				STDOUT.puts "#{ping_seq_id} #{dst} 0.0"
+
+				ping_seq_id = ping_seq_id + 1
+				num_pings = num_pings - 1
+				
+				sleep(delay)
+			end
+		else
+			while ( num_pings > 0 )
+				ping_ack = false
+				pingNextHop = $rt_table[dst][0]
+
+				# No path to get to DST
+				if ( pingNextHop == nil )
+					STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+				else
+					time_sent = $time.to_f
+					ping_packet = "SENDPING #{dst} #{ping_seq_id} #{ping_ack} #{time_sent}"
+					$neighbors[pingNextHop][1].puts(ping_packet)
+				end
+
+				ping_seq_id = ping_seq_id + 1
+				num_pings = num_pings - 1
+
+				sleep(delay)
+			end
+		end
+	end
+
 	while (true)
 		threadMsg = nil
 		
@@ -155,8 +232,11 @@ def commandHandler
 			elsif (threadMsg.include?"SENDMSG")
 				sendmsg_command(threadMsg)
 			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
-				# Push REQUEST command to be run by node
 				$commandQueue.push(requestMatch.post_match)
+			elsif (threadMsg.include?"SENDPING")
+				sendping_command(threadMsg)
+			elsif (threadMsg.include?"PING")
+				ping_command(threadMsg)
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
 			end			
