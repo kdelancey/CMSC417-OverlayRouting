@@ -75,7 +75,6 @@ end
 # --------------------- Part 2 --------------------- # 
 
 def sendmsg(line)
-	STDOUT.puts "hiya.\n" + line
 	$commandQueue.push(line)
 end
 

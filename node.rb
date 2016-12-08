@@ -9,6 +9,7 @@ require './utility'
 require './server'
 require './commandHandler'
 require './nodeGraph'
+require './sendmsg_command'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
