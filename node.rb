@@ -83,8 +83,8 @@ def ping(dst, num_pings, delay)
 	$commandQueue.push("PING #{dst} #{num_pings} #{delay}")
 end
 
-def traceroute()
-	STDOUT.puts "TRACEROUTE: not implemented"
+def traceroute(dst)
+	$commandQueue.push("TRACEROUTE #{dst}")
 end
 
 def ftp()
@@ -125,7 +125,7 @@ def commands
 		when "STATUS"; status()
 		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping(arr[1], arr[2], arr[3])
-		when "TRACEROUTE"; traceroute()
+		when "TRACEROUTE"; traceroute(arr[1])
 		when "FTP"; ftp()
 		when "CIRCUITB"; circuitb()
 		when "CIRCUITM"; circuitm()
@@ -146,7 +146,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	$config_options = Utility.read_config(config_file)
 	$update_int 	= $config_options['updateInterval'].to_f
 	$max_pyld 		= $config_options['maxPayload'].to_f
-	$pingTimeout 	= $config_options['pingpingTimeout'].to_f
+	$pingTimeout 	= $config_options['pingTimeout'].to_f
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
@@ -176,44 +176,44 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 	
-	# Thread to handle the creation of Link State Updates
-	Thread.new {
-		sleep(2)
-		sequence_to_start = 1
+	# # Thread to handle the creation of Link State Updates
+	# Thread.new {
+	# 	sleep(2)
+	# 	sequence_to_start = 1
 		
-		while (true)
-			# Sleep until update interval time
-			sleep($update_int)
+	# 	while (true)
+	# 		# Sleep until update interval time
+	# 		sleep($update_int)
 
-			# Reset list of received lst packets every update interval
-			$lst_received = Hash.new { | h, k | h[k] = [] }
+	# 		# Reset list of received lst packets every update interval
+	# 		$lst_received = Hash.new { | h, k | h[k] = [] }
 
-			# Set up lst packets to be sent out
-			packet_array = Array.new
+	# 		# Set up lst packets to be sent out
+	# 		packet_array = Array.new
 			
-			$neighbors.each do | edgeName, info |
-				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
-			end
+	# 		$neighbors.each do | edgeName, info |
+	# 			# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+	# 			packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
+	# 		end
 
-			$neighbors.each do | edgeName, info |	
-				#send out link state packets of neighbors to each neighbor
-				packet_array.each do | link_state_packet |
-					#Send message for LinkStateUpdate
-					info[1].puts( link_state_packet )
-				end
-			end
+	# 		$neighbors.each do | edgeName, info |	
+	# 			#send out link state packets of neighbors to each neighbor
+	# 			packet_array.each do | link_state_packet |
+	# 				#Send message for LinkStateUpdate
+	# 				info[1].puts( link_state_packet )
+	# 			end
+	# 		end
 
-			# Ensures that the first set of link state packets are sent out
-			if ( sequence_to_start != 1 )
-				$sequence_num = $sequence_num + 1
-			end
+	# 		# Ensures that the first set of link state packets are sent out
+	# 		if ( sequence_to_start != 1 )
+	# 			$sequence_num = $sequence_num + 1
+	# 		end
 
-			sequence_to_start = sequence_to_start + 1
+	# 		sequence_to_start = sequence_to_start + 1
 
-			$graph.update_routing_table($hostname)
-		end
-	}
+	# 		$graph.update_routing_table($hostname)
+	# 	end
+	# }
 
 	# Main thread that takes in standard input for commands
 	while (true)
