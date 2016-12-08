@@ -14,16 +14,16 @@ class Server
 				num_packets = Array.new
 				
 				while packet = client.gets
-					num_packets << packet
+					if ( !packet.include?"SENDMSG" )
+						$commandQueue.push(packet)
+					else
+						num_packets << packet
+					end
 				end
 
 				client.close
 
-				if ( num_packets.size == 1 )
-					$commandQueue.push(packet)
-				else
-					# Defragment packets here then push to commandQueue
-				end
+				# Defragment packets here then push to commandQueue
 			end
 		end
 	end

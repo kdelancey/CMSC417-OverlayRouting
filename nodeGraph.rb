@@ -11,13 +11,13 @@ class NodeGraph
     end
 
     # Adds symmetric edge to graph
-    def self.add_edge(src, dst, cost)
+    def add_edge(src, dst, cost)
         add_direct_edge(src, dst, cost)
         add_direct_edge(dst, src, cost)
     end
 
     # Adds directed edge from src to dst
-    def self.add_direct_edge(src, dst, cost)
+    def add_direct_edge(src, dst, cost)
         if ( @adjacency_map.has_key?(src) )
             @adjacency_map[src][dst] = cost
         else
@@ -26,28 +26,28 @@ class NodeGraph
     end
 
     # Removes symmetric edge from graph
-    def self.remove_edge(src, dst)
+    def remove_edge(src, dst)
         remove_direct_edge(src, dst)
         remove_direct_edge(dst, src)
     end
 
     # Removes directed edge from src to dst
-    def self.remove_direct_edge(src, dst)
+    def remove_direct_edge(src, dst)
         @adjacency_map[src].delete(dst)
     end
 
     # Returns all neighbors of src vertex
-    def self.get_neighbors(src)
+    def get_neighbors(src)
         @adjacency_map[src]
     end
 
     # Returns list of all vertices in graph
-    def self.get_vertices
+    def get_vertices
         @adjacency_map.keys
     end
 
     # Returns the vertex that has the minimum distance
-    def self.get_min_dist
+    def get_min_dist
         min_vertex = ''
         min = $INFINITY
 
@@ -65,7 +65,7 @@ class NodeGraph
 
     # Runs dijkstra's algorithm on the graph to find the minimum
     # distance from src to every other vertex
-    def self.dijkstra(src)
+    def dijkstra(src)
 
         get_vertices.each do | vertex |
             @distance[vertex] = $INFINITY
@@ -91,7 +91,7 @@ class NodeGraph
     end
 
     # Creates path from src to dst
-    def self.set_path_to_dst(src, dst)
+    def set_path_to_dst(src, dst)
         @dst_path = Array.new
 
         if ( @prev[src] != -1 )
@@ -106,7 +106,7 @@ class NodeGraph
     end
 
     # Gets shortest path from source to all other nodes
-    def self.src_path_to_all(src)
+    def src_path_to_all(src)
 
         get_vertices.each do | dst |
             if ( !src.eql?(dst) )
@@ -119,7 +119,7 @@ class NodeGraph
     end
 
     # Gets shortest path from src to dst
-    def self.src_path_to_dst(src, dst)
+    def src_path_to_dst(src, dst)
         dijkstra(src)
         set_path_to_dst(dst, dst)
 
@@ -127,7 +127,7 @@ class NodeGraph
     end
 
     # Updates routing table of graph
-    def self.update_routing_table(src)
+    def update_routing_table(src)
         table = Hash.new { | h, k | h[k] = [] }
 
         src_path_to_all(src)

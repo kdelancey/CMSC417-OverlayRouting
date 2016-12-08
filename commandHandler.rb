@@ -135,39 +135,74 @@ def commandHandler
 	
 	end
 
-	def self.sendping_command(threadMsg)
-		# FORMAT of msgParsed: [SENDPING] [DST] [SEQ ID] [ACK] [TIME SENT]
+	def self.pingerror_command(threadMsg)
+		# FORMAT of msgParsed: [PINGERROR] [SRC]
+		msgParsed = threadMsg.split(" ")
+
+		src = msgParsed[1]
+
+		if ( $hostname.eql?(src) )
+			STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+		else
+			ping_next_hop = $rt_table[src][0]
+			$neighbors[ping_next_hop][1].puts(threadMsg)
+		end
+
+	end
+
+	def self.pingsuccess_command(threadMsg)
+		# FORMAT of msgParsed: [PINGSUCCESS] [DST] [SEQ ID] [TIME SENT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
 		ping_seq_id = msgParsed[2]
-		ping_ack = msgParsed[3]
-		time_sent = msgParsed[4].to_f
+		time_sent = msgParsed[3].to_f
+		src = msgParsed[4]
 
-		# If DST has been reached and received ACK
-		if ( ($hostname.eql?(dst)) && (ping_ack == true) )
+		if ( $hostname.eql?(src) )
 			round_trip_time = $time.to_f - time_sent
+
 			if ( round_trip_time > $pingTimeout )
 				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
 			else
 				STDOUT.puts "#{ping_seq_id} #{dst} #{round_trip_time}"
 			end
+		else
+			ping_next_hop = $rt_table[src][0]
+			$neighbors[ping_next_hop][1].puts(threadMsg)
+		end
 
-		# Reached DST, but hasn't received ACK yet	
-		elsif ( ($hostname.eql?(dst)) && (ping_ack == false) )
-			ping_ack = true
-			ping_packet = "SENDPING #{dst} #{ping_seq_id} #{ping_ack} #{time_sent}"
-			$commandQueue.push(ping_packet)
+	end
+
+	def self.sendping_command(threadMsg)
+		# FORMAT of msgParsed: [SENDPING] [DST] [SEQ ID] [TIME SENT] [SRC]
+		msgParsed = threadMsg.split(" ")
+
+		dst = msgParsed[1]
+		ping_seq_id = msgParsed[2]
+		time_sent = msgParsed[3].to_f
+		src = msgParsed[4]
+
+		# If DST has been reached, send back success message
+		if ( $hostname.eql?(dst) )
+			ping_next_hop = $rt_table[src][0]
+
+			ping_success_packet = "PINGSUCCESS #{dst} #{ping_seq_id} #{time_sent} #{src}"
+
+			$neighbors[ping_next_hop][1].puts(ping_success_packet)
 
 		# Send ping to nextHop of current node
 		else
-			pingNextHop = $rt_table[dst][0]
+			ping_next_hop = $rt_table[dst][0]
 
 			# No path to get to DST
-			if ( pingNextHop == nil )
-				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+			if ( ping_next_hop == nil )
+				ping_next_hop = $rt_table[src][0]
+				ping_err_packet = "PINGERROR #{src}"
+
+				$neighbors[ping_next_hop][1].puts(ping_err_packet)
 			else
-				$neighbors[pingNextHop][1].puts(threadMsg)
+				$neighbors[ping_next_hop][1].puts(threadMsg)
 			end
 		end				
 	end
@@ -175,10 +210,10 @@ def commandHandler
 	def self.ping_command(threadMsg)
 		# FORMAT of msgParsed: [PING] [DST] [NUM PINGS] [DELAY]
 		msgParsed = threadMsg.split(" ")
-		
+
 		dst = msgParsed[1]
 		num_pings = msgParsed[2].to_i
-		delay = msg[3].to_i
+		delay = msgParsed[3].to_i
 
 		ping_seq_id = 0
 
@@ -194,16 +229,15 @@ def commandHandler
 			end
 		else
 			while ( num_pings > 0 )
-				ping_ack = false
-				pingNextHop = $rt_table[dst][0]
+				ping_next_hop = $rt_table[dst][0]
 
 				# No path to get to DST
-				if ( pingNextHop == nil )
+				if ( ping_next_hop == nil )
 					STDOUT.puts "PING ERROR: HOST UNREACHABLE"
 				else
 					time_sent = $time.to_f
-					ping_packet = "SENDPING #{dst} #{ping_seq_id} #{ping_ack} #{time_sent}"
-					$neighbors[pingNextHop][1].puts(ping_packet)
+					ping_packet = "SENDPING #{dst} #{ping_seq_id} #{time_sent} #{$hostname}"
+					$neighbors[ping_next_hop][1].puts(ping_packet)
 				end
 
 				ping_seq_id = ping_seq_id + 1
@@ -214,13 +248,36 @@ def commandHandler
 		end
 	end
 
+	def self.traceroute_command(threadMsg)
+		# FORMAT of msgParsed: [TRACEROUTE] [DST]
+		msgParsed = threadMsg.split(" ")
+
+		dst = msgParsed[1]
+		hop_count = 1
+
+		STDOUT.puts "0 #{$hostname} 0.0"
+
+		if ( !$hostname.eql?(dst) )
+			tr_next_hop = $rt_table[dst][0]
+
+			# No path to get to DST
+			if (tr_next_hop == nil )
+				STDOUT.puts "TIMEOUT ON #{hop_count}"
+			else
+				time_sent = $time.to_f
+				traceroute_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{$hostname}"
+				$neighbors[tr_next_hop][1].puts(ping_packet)
+			end
+		end
+	end
+
 	while (true)
 		threadMsg = nil
 		
 		# Check whether Queue has a message/command to process
-		if ( !$commandQueue.empty? )			
+		if ( !$commandQueue.empty? )
 			threadMsg = $commandQueue.pop
-			
+
 			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )	
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include?"EDGED")	
@@ -235,8 +292,14 @@ def commandHandler
 				$commandQueue.push(requestMatch.post_match)
 			elsif (threadMsg.include?"SENDPING")
 				sendping_command(threadMsg)
+			elsif (threadMsg.include?"PINGERROR")
+				pingerror_command(threadMsg)
+			elsif (threadMsg.include?"PINGSUCCESS")
+				pingsuccess_command(threadMsg)
 			elsif (threadMsg.include?"PING")
 				ping_command(threadMsg)
+			elsif (threadMsg.include?"TRACEROUTE")
+				traceroute_command(threadMsg)
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
 			end			
