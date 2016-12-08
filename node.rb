@@ -123,13 +123,8 @@ def commands
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-<<<<<<< HEAD
 		when "SENDMSG"; sendmsg(line)
-		when "PING"; ping()
-=======
-		when "SENDMSG"; sendmsg()
 		when "PING"; ping(arr[1], arr[2], arr[3])
->>>>>>> refs/remotes/origin/ace-branch
 		when "TRACEROUTE"; traceroute()
 		when "FTP"; ftp()
 		when "CIRCUITB"; circuitb()

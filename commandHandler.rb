@@ -198,14 +198,16 @@ def commandHandler
 		# Check whether Queue has a message/command to process
 		if ( !$commandQueue.empty? )			
 			threadMsg = $commandQueue.pop
-			puts threadMsg
-			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )	
+			
+			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )
+				puts "EDGEB BOYS " + threadMsg			
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include?"EDGED")	
 				edged_command(threadMsg)
 			elsif (threadMsg.include?"EDGEU")	
 				edgeu_command(threadMsg)
 			elsif (threadMsg.include?"LSU")
+				puts "LSU BOYS " + threadMsg	
 				lsu_command(threadMsg)
 			elsif (threadMsg.include?"SENDMSG")
 				SENDMSG.command(threadMsg)
@@ -218,8 +220,6 @@ def commandHandler
 			elsif ( (recmsgMatch = /^RECMSG:/.match(threadMsg) ) != nil )				
 				# Push RECMSG: (receive message fragment) command to be run by node
 				SENDMSG.recmsg_command(recmsgMatch.post_match)
-			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
-				$commandQueue.push(requestMatch.post_match)
 			elsif (threadMsg.include?"SENDPING")
 				sendping_command(threadMsg)
 			elsif (threadMsg.include?"PING")
