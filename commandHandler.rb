@@ -147,7 +147,6 @@ def commandHandler
 			ping_next_hop = $rt_table[src][0]
 			$neighbors[ping_next_hop][1].puts(threadMsg)
 		end
-
 	end
 
 	def self.pingsuccess_command(threadMsg)
@@ -171,7 +170,6 @@ def commandHandler
 			ping_next_hop = $rt_table[src][0]
 			$neighbors[ping_next_hop][1].puts(threadMsg)
 		end
-
 	end
 
 	def self.sendping_command(threadMsg)
@@ -248,25 +246,102 @@ def commandHandler
 		end
 	end
 
+	def self.trerror_command(threadMsg)
+		# FORMAT of msgParsed: [TRERROR] [HOP COUNT] [SRC]
+		msgParsed = threadMsg.split(" ")
+
+		hop_count = msgParsed[1]
+		src = msgParsed[2]
+
+		if ( $hostname.eql?(src) )
+			STDOUT.puts "TIMEOUT ON #{hop_count}"
+		else
+			tr_next_hop = $rt_table[src][0]
+			$neighbors[tr_next_hop][1].puts(threadMsg)
+		end
+	end
+
+	def self.trsuccess_command(threadMsg)
+		# FORMAT of msgParsed: [TRSUCCESS] [DST] [TIME TO NODE] [HOP COUNT] [SRC]
+		msgParsed = threadMsg.split(" ")
+
+		dst = msgParsed[1]
+		time_to_node = msgParsed[2].to_f
+		hop_count = msgParsed[3]
+		src = msgParsed[4]
+
+		if ( $hostname.eql?(src) )
+			STDOUT.puts "#{hop_count} #{dst} #{time_to_node}"
+		else
+			tr_next_hop = $rt_table[src][0]
+			$neighbors[tr_next_hop][1].puts(threadMsg)
+		end
+	end
+
+	def self.sendtr_command(threadMsg)
+		# FORMAT of msgParsed: [SENDTR] [DST] [TIME SENT] [HOP COUNT] [SRC]
+		msgParsed = threadMsg.split(" ")
+
+		dst = msgParsed[1]
+		time_sent = msgParsed[2].to_f
+		hop_count = msgParsed[3].to_i + 1
+		src = msgParsed[4]
+
+		time_to_node = $time.to_f - time_sent
+		tr_next_hop = $rt_table[src][0]
+		
+		# Traceroute failure on this node if it takes too long
+		if ( time_to_node > $pingTimeout )
+			tr_err_packet = "TRERROR #{hop_count} #{src}"
+
+			$neighbors[tr_next_hop][1].puts(tr_err_packet)
+		
+		# Traceroute success to this node, so send back success message
+		else
+			tr_success_packet = "TRSUCCESS #{dst} #{time_to_node} #{hop_count} #{src}"
+
+			$neighbors[tr_next_hop][1].puts(tr_success_packet)
+
+			# If not DST, continue traceroute
+			if ( !$hostname.eql?(dst) )
+				tr_next_hop = $rt_table[dst][0]
+
+				# No path to get to DST
+				if ( tr_next_hop == nil )
+					tr_next_hop = $rt_table[src][0]
+					tr_err_packet = "TRERROR #{hop_count} #{src}"
+
+					$neighbors[tr_next_hop][1].puts(tr_err_packet)
+				else
+					sendtr_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{src}"
+					$neighbors[tr_next_hop][1].puts(sendtr_packet)
+				end
+			end		
+		end	 
+	end
+
 	def self.traceroute_command(threadMsg)
 		# FORMAT of msgParsed: [TRACEROUTE] [DST]
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		hop_count = 1
+		hop_count = 0
 
-		STDOUT.puts "0 #{$hostname} 0.0"
+		# Source node has hop count of 0
+		STDOUT.puts "#{hop_count} #{$hostname} 0.0"
 
+		# Continue traceroute if DST isn't itself
 		if ( !$hostname.eql?(dst) )
 			tr_next_hop = $rt_table[dst][0]
 
 			# No path to get to DST
 			if (tr_next_hop == nil )
+				hop_count = hop_count + 1
 				STDOUT.puts "TIMEOUT ON #{hop_count}"
 			else
 				time_sent = $time.to_f
 				traceroute_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{$hostname}"
-				$neighbors[tr_next_hop][1].puts(ping_packet)
+				$neighbors[tr_next_hop][1].puts(traceroute_packet)
 			end
 		end
 	end
@@ -300,6 +375,12 @@ def commandHandler
 				ping_command(threadMsg)
 			elsif (threadMsg.include?"TRACEROUTE")
 				traceroute_command(threadMsg)
+			elsif (threadMsg.include?"SENDTR")
+				sendtr_command(threadMsg)
+			elsif (threadMsg.include?"TRERROR")
+				trerror_command(threadMsg)
+			elsif (threadMsg.include?"TRSUCCESS")
+				trsuccess_command(threadMsg)
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
 			end			
