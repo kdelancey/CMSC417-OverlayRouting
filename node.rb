@@ -74,8 +74,8 @@ end
 
 # --------------------- Part 2 --------------------- # 
 
-def sendmsg()
-	STDOUT.puts "SENDMSG: not implemented"
+def sendmsg(line)
+	$commandQueue.push(line)
 end
 
 def ping()
@@ -122,7 +122,7 @@ def commands
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg()
+		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping()
 		when "TRACEROUTE"; traceroute()
 		when "FTP"; ftp()

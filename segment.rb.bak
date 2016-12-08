@@ -77,7 +77,8 @@ class Segment
 	def get_fragments 
 		@aryOfFragments
 	end
-
+	
+	# 
 	def Segment.defragment( ary_of_fragment_strings, id_to_fragment )
 	
 		ary_of_fragment_strings.each do |fragment_str|
