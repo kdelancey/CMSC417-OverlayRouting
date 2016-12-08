@@ -11,12 +11,19 @@ class Server
 
 		while (true)
 			Thread.start(socket.accept) do |client|
+				num_packets = Array.new
 				
 				while packet = client.gets
-					$commandQueue.push(packet)
+					num_packets << packet
 				end
 
 				client.close
+
+				if ( num_packets.size == 1 )
+					$commandQueue.push(packet)
+				else
+					# Defragment packets here then push to commandQueue
+				end
 			end
 		end
 	end

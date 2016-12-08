@@ -25,7 +25,7 @@ $neighbors = Hash.new		# Hash of all open sockets (neighbors) to this node
 $config_options = nil		# Array of all config options
 $update_int = nil			# How often routing updates should occur (secs)
 $max_pyld = nil				# Maximum size of information that can be sent (bytes)
-$timeout = nil				# Given timeout of ping (secs)
+$pingTimeout = nil			# Given timeout of ping (secs)
 
 $time = nil					# Internal clock of this node
 
@@ -79,8 +79,8 @@ def sendmsg(line)
 	$commandQueue.push(line)
 end
 
-def ping()
-	STDOUT.puts "PING: not implemented"
+def ping(dst, num_pings, delay)
+	$commandQueue.push("PING #{dst} #{num_pings} #{delay}")
 end
 
 def traceroute()
@@ -123,8 +123,13 @@ def commands
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
+<<<<<<< HEAD
 		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping()
+=======
+		when "SENDMSG"; sendmsg()
+		when "PING"; ping(arr[1], arr[2], arr[3])
+>>>>>>> refs/remotes/origin/ace-branch
 		when "TRACEROUTE"; traceroute()
 		when "FTP"; ftp()
 		when "CIRCUITB"; circuitb()
@@ -144,9 +149,9 @@ def setup(hostname, port, nodes_txt, config_file)
 	$nodes_map 		= Utility.read_nodes(nodes_txt)
 
 	$config_options = Utility.read_config(config_file)
-	$update_int 	= $config_options['updateInterval'].to_i
-	$max_pyld 		= $config_options['maxPayload'].to_i
-	$timeout 		= $config_options['pingTimeout'].to_i
+	$update_int 	= $config_options['updateInterval'].to_f
+	$max_pyld 		= $config_options['maxPayload'].to_f
+	$pingTimeout 	= $config_options['pingpingTimeout'].to_f
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
@@ -158,7 +163,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle update of the timer
 	Thread.new {
-		$time = Time.now
+		$time = Time.new
 
 		while (true) 
 			sleep(0.5)
