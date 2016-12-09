@@ -43,8 +43,8 @@ $graph = NodeGraph.new		# Graph that represents the network with vertices and ed
 							
 # --------------------- Part 0 --------------------- # 
 
-def edgeb(src_ip, dst_ip, dst)
-	$commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
+def edgeb(line)
+	$commandQueue.push(line)
 end
 
 def dumptable(filename)
@@ -60,12 +60,12 @@ end
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(dst)
-	$commandQueue.push("EDGED #{dst}")
+def edged(line)
+	$commandQueue.push(line)
 end
 
-def edgeu(dst, cost)
-	$commandQueue.push("EDGEU #{dst} #{cost}")
+def edgeu(line)
+	$commandQueue.push(line)
 end
 
 def status()
@@ -83,8 +83,8 @@ def ping(dst, num_pings, delay)
 	$commandQueue.push("PING #{dst} #{num_pings} #{delay}")
 end
 
-def traceroute()
-	STDOUT.puts "TRACEROUTE: not implemented"
+def traceroute(dst)
+	$commandQueue.push("TRACEROUTE #{dst}")
 end
 
 def ftp()
@@ -113,19 +113,20 @@ end
 # ====================================================================
 def commands
 	while (line = STDIN.gets())
+		puts "DUPLICATED > " + line
 		line = line.strip()
 		arr = line.split(' ')
 		cmd = arr[0]
 		case cmd
-		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2])
+		when "EDGEB"; edgeb(line)
+		when "EDGED"; edged(line)
+		when "EDGEU"; edgeu(line)
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg()
+		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping(arr[1], arr[2], arr[3])
-		when "TRACEROUTE"; traceroute()
+		when "TRACEROUTE"; traceroute(arr[1])
 		when "FTP"; ftp()
 		when "CIRCUITB"; circuitb()
 		when "CIRCUITM"; circuitm()
@@ -146,7 +147,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	$config_options = Utility.read_config(config_file)
 	$update_int 	= $config_options['updateInterval'].to_f
 	$max_pyld 		= $config_options['maxPayload'].to_f
-	$pingTimeout 	= $config_options['pingpingTimeout'].to_f
+	$pingTimeout 	= $config_options['pingTimeout'].to_f
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node

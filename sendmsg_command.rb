@@ -1,4 +1,6 @@
-def SENDMSG
+require './segment'
+
+class SENDMSG
 
 	# SENDMSG command.
 	# Called only on original node. Any sequential nodes should either
@@ -7,40 +9,47 @@ def SENDMSG
 		# FORMAT:
 		# SNDMSG [DST] [MSG]
 		msgParsed = threadMsg.split(" ", 3)
-		puts "1"
 		# Destination and message to send
 		dst = msgParsed[1]
 		msg = msgParsed[2]
 		
 		# Socket to nextHop neighbor
 		nextHop_socket = nil
-		puts "1"
 		# If the destination node in SENDMSG command
 		# is NOT connected to this node, or this node itself,
 		# print failure message, and return
-		puts "1"
 		nextHop_neighbor = $rt_table[dst][0] #change doesn't exist...
 		if ( $neighbors[nextHop_neighbor] == nil ) #...doesn't exist
 			if ( dst == $hostname ) #.. but if current node (sending to itself)...
 				STDOUT.puts msg
 			end
-			puts "1"
 			STDOUT.puts "SENDMSG ERROR: HOST UNREACHABLE" #...unconnected...
 			return
 		end
-		puts "1"
-		# Create a packet to fragment, 
-		segment_of_message = Segment.new( $hostname, dst, message, $max_pyld )
-		puts "1"
-		# Get array of fragments to send from packet
-		ary_of_fragments = segment_of_message.get_fragments
-		puts "1"
-		# If nextHop is dst, send REQUEST:RECMSG
-		# else, sent PT:  (passthrough)
-		ary_of_fragments.each do | fragment_to_send |
-			passthrough_msg = "PT:" + fragment_to_send.to_s
-			STDOUT.puts "Before sending passthrough:\n> " + passthrough_msg
-			nextHop_socket.puts(passthrough_msg)
+		
+		# If socket is open.
+		if ( ( nextHop_socket = $neighbors[nextHop_neighbor][1] ) != nil )
+			# Create a packet to fragment,
+			segment_of_message = Segment.new( $hostname, dst, msg, $max_pyld )
+			
+			# Get array of fragments to send from packet
+			ary_of_fragments = segment_of_message.get_fragments
+			
+			# If nextHop is dst, send RECMSG
+			# else, sent PT:  (passthrough)
+			type_to_send = nil
+			if ( nextHop_neighbor == dst )
+				type_to_send = "RECMSG:"
+			else 
+				type_to_send = "PT:"
+			end
+			
+			ary_of_fragments.each do | fragment_to_send |
+				passthrough_msg = type_to_send + fragment_to_send.to_s
+				STDOUT.puts "Before sending:\n> " + passthrough_msg
+				nextHop_socket.puts(passthrough_msg)
+				sleep( 0.01 * $max_pyld)
+			end
 		end
 	
 	end
@@ -86,11 +95,24 @@ def SENDMSG
 	def SENDMSG.recmsg_command(threadMsg)
 	
 		frgmt_str = threadMsg
-
-		if ( ( segmentMsg = Segment.defragment( frgmt_str, $id_to_fragment ) ) != nil )
-			STDOUT.puts( segmentMsg )
+		
+		# Parse raw string, turn into fragment, get header
+		frgmt = Segment.parse_fragment(frgmt_str)
+		
+		# Get the id of the packet from the header info.
+		frgmt_id = frgmt.get_hdr.pkt_id
+		
+		# If pkt_id already exists in id_to_fragment hash,
+		# concat to existing array. Else, make new array.
+		if ( $id_to_fragment[frgmt_id] == nil )
+			$id_to_fragment[frgmt_id] = [frgmt]
+		else 
+			$id_to_fragment[frgmt_id] << frgmt
 		end
 		
+		if ( ( segmentMsg = Segment.defragment( $id_to_fragment[frgmt_id], $id_to_fragment ) ) != nil )
+			STDOUT.puts( segmentMsg )
+		end
 	end
 	
 end

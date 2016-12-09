@@ -8,7 +8,7 @@ def commandHandler
 	$id_to_fragment = Hash.new 	#used specifically to take in recieved fragments for SENDMSG
 								# {segment_id -> array of fragments}
 
-	def self.edgeb_command(threadMsg)
+	def edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
 		dst = msgParsed[3]
@@ -34,12 +34,13 @@ def commandHandler
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
 			# Format: [DSTIP] [SRCIP] [CURRENTNODENAME]
-			str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
-			$neighbors[dst][1].puts(str_request)
+			str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}\n"
+			($neighbors[dst][1]).puts(str_request)
 		end
+		return
 	end
 
-	def self.edged_command(threadMsg)
+	def edged_command(threadMsg)
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
 		dst = msgParsed[1]
@@ -53,7 +54,7 @@ def commandHandler
 		$graph.remove_edge($hostname, dst)		
 	end
 
-	def self.edgeu_command(threadMsg)
+	def edgeu_command(threadMsg)
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
 
@@ -74,7 +75,7 @@ def commandHandler
 		$graph.add_edge($hostname, dst, cost)
 	end
 
-	def self.lsu_command(threadMsg)
+	def lsu_command(threadMsg)
 		# FORMAT of msgParsed: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 		msgParsed = threadMsg.split(" ")
 		
@@ -113,7 +114,7 @@ def commandHandler
 		end
 	end
 
-	def self.pingerror_command(threadMsg)
+	def pingerror_command(threadMsg)
 		# FORMAT of msgParsed: [PINGERROR] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -128,7 +129,7 @@ def commandHandler
 
 	end
 
-	def self.pingsuccess_command(threadMsg)
+	def pingsuccess_command(threadMsg)
 		# FORMAT of msgParsed: [PINGSUCCESS] [DST] [SEQ ID] [TIME SENT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -152,7 +153,7 @@ def commandHandler
 
 	end
 
-	def self.sendping_command(threadMsg)
+	def sendping_command(threadMsg)
 		# FORMAT of msgParsed: [SENDPING] [DST] [SEQ ID] [TIME SENT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -185,7 +186,7 @@ def commandHandler
 		end				
 	end
 
-	def self.ping_command(threadMsg)
+	def ping_command(threadMsg)
 		# FORMAT of msgParsed: [PING] [DST] [NUM PINGS] [DELAY]
 		msgParsed = threadMsg.split(" ")
 
@@ -226,7 +227,7 @@ def commandHandler
 		end
 	end
 
-	def self.traceroute_command(threadMsg)
+	def traceroute_command(threadMsg)
 		# FORMAT of msgParsed: [TRACEROUTE] [DST]
 		msgParsed = threadMsg.split(" ")
 
@@ -255,23 +256,18 @@ def commandHandler
 		# Check whether Queue has a message/command to process
 		if ( !$commandQueue.empty? )
 			threadMsg = $commandQueue.pop
-<<<<<<< HEAD
 			
 			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )
-				puts "EDGEB BOYS " + threadMsg			
-=======
-
-			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )	
->>>>>>> refs/remotes/origin/ace-branch
+				puts "EDGEB BOYS " + threadMsg		
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include?"EDGED")	
 				edged_command(threadMsg)
 			elsif (threadMsg.include?"EDGEU")	
 				edgeu_command(threadMsg)
 			elsif (threadMsg.include?"LSU")
-				puts "LSU BOYS " + threadMsg	
 				lsu_command(threadMsg)
 			elsif (threadMsg.include?"SENDMSG")
+				puts "SENDMSG BOYS " + threadMsg
 				SENDMSG.command(threadMsg)
 			elsif ( (requestMatch = /^REQUEST:/.match(threadMsg) ) != nil )				
 				# Push REQUEST command to be run by node

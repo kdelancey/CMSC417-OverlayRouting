@@ -43,8 +43,8 @@ $graph = NodeGraph.new		# Graph that represents the network with vertices and ed
 							
 # --------------------- Part 0 --------------------- # 
 
-def edgeb(src_ip, dst_ip, dst)
-	$commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
+def edgeb(line)
+	$commandQueue.push(line)
 end
 
 def dumptable(filename)
@@ -60,12 +60,12 @@ end
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(dst)
-	$commandQueue.push("EDGED #{dst}")
+def edged(line)
+	$commandQueue.push(line)
 end
 
-def edgeu(dst, cost)
-	$commandQueue.push("EDGEU #{dst} #{cost}")
+def edgeu(line)
+	$commandQueue.push(line)
 end
 
 def status()
@@ -117,9 +117,9 @@ def commands
 		arr = line.split(' ')
 		cmd = arr[0]
 		case cmd
-		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2])
+		when "EDGEB"; edgeb(line)
+		when "EDGED"; edged(line)
+		when "EDGEU"; edgeu(line)
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
@@ -176,44 +176,44 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 	
-	# # Thread to handle the creation of Link State Updates
-	# Thread.new {
-	# 	sleep(2)
-	# 	sequence_to_start = 1
+	# Thread to handle the creation of Link State Updates
+	Thread.new {
+		sleep(2)
+		sequence_to_start = 1
 		
-	# 	while (true)
-	# 		# Sleep until update interval time
-	# 		sleep($update_int)
+		while (true)
+			# Sleep until update interval time
+			sleep($update_int)
 
-	# 		# Reset list of received lst packets every update interval
-	# 		$lst_received = Hash.new { | h, k | h[k] = [] }
+			# Reset list of received lst packets every update interval
+			$lst_received = Hash.new { | h, k | h[k] = [] }
 
-	# 		# Set up lst packets to be sent out
-	# 		packet_array = Array.new
+			# Set up lst packets to be sent out
+			packet_array = Array.new
 			
-	# 		$neighbors.each do | edgeName, info |
-	# 			# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-	# 			packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
-	# 		end
+			$neighbors.each do | edgeName, info |
+				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
+			end
 
-	# 		$neighbors.each do | edgeName, info |	
-	# 			#send out link state packets of neighbors to each neighbor
-	# 			packet_array.each do | link_state_packet |
-	# 				#Send message for LinkStateUpdate
-	# 				info[1].puts( link_state_packet )
-	# 			end
-	# 		end
+			$neighbors.each do | edgeName, info |	
+				#send out link state packets of neighbors to each neighbor
+				packet_array.each do | link_state_packet |
+					#Send message for LinkStateUpdate
+					info[1].puts( link_state_packet )
+				end
+			end
 
-	# 		# Ensures that the first set of link state packets are sent out
-	# 		if ( sequence_to_start != 1 )
-	# 			$sequence_num = $sequence_num + 1
-	# 		end
+			# Ensures that the first set of link state packets are sent out
+			if ( sequence_to_start != 1 )
+				$sequence_num = $sequence_num + 1
+			end
 
-	# 		sequence_to_start = sequence_to_start + 1
+			sequence_to_start = sequence_to_start + 1
 
-	# 		$graph.update_routing_table($hostname)
-	# 	end
-	# }
+			$graph.update_routing_table($hostname)
+		end
+	}
 
 	# Main thread that takes in standard input for commands
 	while (true)
