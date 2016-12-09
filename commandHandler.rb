@@ -5,7 +5,7 @@ require 'socket'
 # ====================================================================
 def commandHandler
 
-	def self.edgeb_command(threadMsg)
+	def edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
 		src_ip = msgParsed[1]
@@ -35,7 +35,7 @@ def commandHandler
 		end
 	end
 
-	def self.edged_command(threadMsg)
+	def edged_command(threadMsg)
 		# Format of msgParsed: [EDGED] [DST]
 		msgParsed = threadMsg.split(" ")
 		dst = msgParsed[1]
@@ -49,7 +49,7 @@ def commandHandler
 		$graph.remove_edge($hostname, dst)		
 	end
 
-	def self.edgeu_command(threadMsg)
+	def edgeu_command(threadMsg)
 		# Format of msgParsed: [EDGEU] [DST] [COST]
 		msgParsed = threadMsg.split(" ")
 
@@ -70,7 +70,7 @@ def commandHandler
 		$graph.add_edge($hostname, dst, cost)
 	end
 
-	def self.lsu_command(threadMsg)
+	def lsu_command(threadMsg)
 		# FORMAT of LSU line: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 
 		# Split up link state packets
@@ -122,7 +122,7 @@ def commandHandler
 		end
 	end
 	
-	def self.sendmsg_command(threadMsg) 
+	def sendmsg_command(threadMsg) 
 		# FORMAT of msgParsed: [SENDMSG] [DST] [MSG]
 		msgParsed = threadMsg.split(" ")
 		
@@ -151,7 +151,7 @@ def commandHandler
 	
 	end
 
-	def self.pingerror_command(threadMsg)
+	def pingerror_command(threadMsg)
 		# FORMAT of msgParsed: [PINGERROR] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -165,7 +165,7 @@ def commandHandler
 		end
 	end
 
-	def self.pingsuccess_command(threadMsg)
+	def pingsuccess_command(threadMsg)
 		# FORMAT of msgParsed: [PINGSUCCESS] [DST] [SEQ ID] [TIME SENT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -191,7 +191,7 @@ def commandHandler
 		end
 	end
 
-	def self.sendping_command(threadMsg)
+	def sendping_command(threadMsg)
 		# FORMAT of msgParsed: [SENDPING] [DST] [SEQ ID] [TIME SENT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -224,7 +224,7 @@ def commandHandler
 		end				
 	end
 
-	def self.ping_command(threadMsg)
+	def ping_command(threadMsg)
 		# FORMAT of msgParsed: [PING] [DST] [SEQ ID]
 		msgParsed = threadMsg.split(" ")
 
@@ -249,7 +249,7 @@ def commandHandler
 		end
 	end
 
-	def self.trerror_command(threadMsg)
+	def trerror_command(threadMsg)
 		# FORMAT of msgParsed: [TRERROR] [HOP COUNT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -264,7 +264,7 @@ def commandHandler
 		end
 	end
 
-	def self.trsuccess_command(threadMsg)
+	def trsuccess_command(threadMsg)
 		# FORMAT of msgParsed: [TRSUCCESS] [DST] [TIME TO NODE] [HOP COUNT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -281,7 +281,7 @@ def commandHandler
 		end
 	end
 
-	def self.sendtr_command(threadMsg)
+	def sendtr_command(threadMsg)
 		# FORMAT of msgParsed: [SENDTR] [DST] [TIME SENT] [HOP COUNT] [SRC]
 		msgParsed = threadMsg.split(" ")
 
@@ -324,7 +324,7 @@ def commandHandler
 		end	 
 	end
 
-	def self.traceroute_command(threadMsg)
+	def traceroute_command(threadMsg)
 		# FORMAT of msgParsed: [TRACEROUTE] [DST]
 		msgParsed = threadMsg.split(" ")
 

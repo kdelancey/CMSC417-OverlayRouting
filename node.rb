@@ -13,7 +13,7 @@ require './nodeGraph'
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
 
-$INFINITY = 2147483647		# Indicate no current path to DST
+$INFINITY = 2147483647		# Indicates no current path to DST
 
 $commandQueue = Queue.new	# Queue of messages/commands to process
 
@@ -35,10 +35,6 @@ $sequence_num = 0			# Sequence number for link state packets
 $lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
 $graph = NodeGraph.new		# Graph that represents the network with vertices and edges
-
-#$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
-								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
-								#Done to ensure that a message is not resent on a link/reused on a node.
 							
 # --------------------- Part 0 --------------------- # 
 
@@ -100,15 +96,16 @@ end
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb()
+def circuitb(circuit_id, dst, circuit_list)
+	circuit_nodes = circuit_list.split(",")
 	STDOUT.puts "CIRCUITB: not implemented"
 end
 
-def circuitm()
+def circuitm(circuit_id, message)
 	STDOUT.puts "CIRCUITM: not implemented"
 end
 
-def circuitd()
+def circuitd(circuit_id)
 	STDOUT.puts "CIRCUITD: not implemented"
 end
 
@@ -133,9 +130,9 @@ def commands
 		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
 		when "TRACEROUTE"; traceroute(arr[1])
 		when "FTP"; ftp()
-		when "CIRCUITB"; circuitb()
-		when "CIRCUITM"; circuitm()
-		when "CIRCUITD"; circuitd()
+		when "CIRCUITB"; circuitb(arr[1], arr[2], arr[3])
+		when "CIRCUITM"; circuitm(arr[1], arr[2])
+		when "CIRCUITD"; circuitd(arr[1])
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
