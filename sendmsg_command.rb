@@ -7,7 +7,7 @@ class SENDMSG
 	# use PASSTHROUGH or RECMSG
 	def SENDMSG.command(threadMsg) 
 		# FORMAT:
-		# SNDMSG [DST] [MSG]
+		# [SENDMSG] [DST] [MSG]
 		msgParsed = threadMsg.split(" ", 3)
 		# Destination and message to send
 		dst = msgParsed[1]
@@ -46,7 +46,7 @@ class SENDMSG
 			
 			ary_of_fragments.each do | fragment_to_send |
 				passthrough_msg = type_to_send + fragment_to_send.to_s
-				STDOUT.puts "Before sending:\n> " + passthrough_msg
+				#STDOUT.puts "Before sending:\n> " + passthrough_msg
 				nextHop_socket.puts(passthrough_msg)
 				sleep( 0.01 * $max_pyld)
 			end
@@ -111,7 +111,7 @@ class SENDMSG
 		end
 		
 		if ( ( segmentMsg = Segment.defragment( $id_to_fragment[frgmt_id], $id_to_fragment ) ) != nil )
-			STDOUT.puts( segmentMsg )
+			STDOUT.puts( "SENDMSG: #{frgmt.get_hdr.src_nd} --> " + segmentMsg )
 		end
 	end
 	

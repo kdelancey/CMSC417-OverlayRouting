@@ -1,4 +1,3 @@
-
 class Segment
 
 	@aryOfFragments = nil #array of all fragments

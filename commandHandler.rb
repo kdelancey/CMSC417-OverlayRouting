@@ -62,13 +62,6 @@ def commandHandler
 		# Update DST's cost
 		$neighbors[dst][0] = cost
 
-		# If new cost to DST is better than previous route to DST,
-		# update routing table with DST as nextHop with new cost
-		if ( $rt_table[dst][1] > cost )
-			$rt_table[dst][0] = dst
-			$rt_table[dst][1] = cost
-		end
-
 		# Update edge to dst with cost
 		$graph.add_edge($hostname, dst, cost)
 	end
@@ -83,6 +76,11 @@ def commandHandler
 		lsu_check = lsu_array[0].split(" ")
 		check_src = lsu_check[1]
 		check_seq_num = lsu_check[4].to_i
+
+		# In case node gets reset, have it catch up to the most recent sequence number
+		if ( $sequence_num < check_seq_num )
+			$sequence_num = check_seq_num
+		end
 
 		# Don't send out link state packet if it's an older sequence number
 		if ( check_seq_num < $sequence_num )
@@ -123,35 +121,6 @@ def commandHandler
 				neighbor_info[1].puts( lsu_packet )
 			end
 		end
-	end
-	
-	def sendmsg_command(threadMsg) 
-		# FORMAT of msgParsed: [SENDMSG] [DST] [MSG]
-		msgParsed = threadMsg.split(" ")
-		
-		dst = msgParsed[1]
-		msg = msgParsed[2]
-		
-		# If the destination node in SENDMSG command
-		# is NOT connected to this node, print failure
-		# message, and return
-		if ( $rt_table.keys.include? dst )
-			STDOUT.puts "SENDMSG ERROR: HOST UNREACHABLE"
-		end
-		
-		# Create a packet to fragment, 
-		segment_of_message = Segment.new $hostname, dst, message, $max_pyld 
-		
-		# Get array of fragments to send from packet
-		ary_of_fragments = segment_of_message.get_fragments
-		
-		# TODO: Make this loop send out messages
-		# of fragments. Feeling this will take extensive
-		# debugging.
-		ary_of_fragments.each do | fragment_to_send |
-			
-		end
-	
 	end
 
 	def pingerror_command(threadMsg)
@@ -253,14 +222,15 @@ def commandHandler
 	end
 
 	def trerror_command(threadMsg)
-		# FORMAT of msgParsed: [TRERROR] [HOP COUNT] [SRC]
+		# FORMAT of msgParsed: [TRERROR] [HOP COUNT] [SRC] [TIMEOUT]
 		msgParsed = threadMsg.split(" ")
 
 		hop_count = msgParsed[1]
 		src = msgParsed[2]
+		timeout = msgParsed[3].to_f
 
 		if ( $hostname.eql?(src) )
-			STDOUT.puts "TIMEOUT ON #{hop_count}"
+			STDOUT.puts "#{timeout} ON #{hop_count}"
 		else
 			tr_next_hop = $rt_table[src][0]
 			$neighbors[tr_next_hop][1].puts(threadMsg)
@@ -298,7 +268,7 @@ def commandHandler
 		
 		# Traceroute failure on this node if it takes too long
 		if ( time_to_node > $pingTimeout )
-			tr_err_packet = "TRERROR #{hop_count} #{src}"
+			tr_err_packet = "TRERROR #{hop_count} #{src} #{time_to_node}"
 
 			$neighbors[tr_next_hop][1].puts(tr_err_packet)
 		
@@ -341,13 +311,14 @@ def commandHandler
 
 		# Continue traceroute if DST isn't itself
 		if ( !$hostname.eql?(dst) )
+			time_sent = $time.to_f
 			tr_next_hop = $rt_table[dst][0]
 
 			# No path to get to DST
 			if (tr_next_hop == nil )
-				STDOUT.puts "TIMEOUT ON #{hop_count}"
+				timeout = $time.to_f - time_sent
+				STDOUT.puts "#{timeout} ON #{hop_count}"
 			else
-				time_sent = $time.to_f
 				traceroute_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{$hostname}"
 				$neighbors[tr_next_hop][1].puts(traceroute_packet)
 			end
@@ -395,7 +366,7 @@ def commandHandler
 			elsif (threadMsg.include? "TRSUCCESS" )
 				trsuccess_command(threadMsg)
 			elsif (threadMsg.include? "CIRCUITB")
-				circuitb_command(threadMsg)	
+				Circuit.build(threadMsg)	
 			elsif (threadMsg.include? "CIRCUITM")
 					
 			elsif (threadMsg.include? "CIRCUITD")

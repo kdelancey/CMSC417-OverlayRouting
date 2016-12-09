@@ -27,7 +27,7 @@ $update_int = nil			# How often routing updates should occur (secs)
 $max_pyld = nil				# Maximum size of neighbor_information that can be sent (bytes)
 $pingTimeout = nil			# Given timeout of ping (secs)
 
-$time = nil					# Internal clock of this node
+$time = Time.new			# Internal clock of this node
 
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest]
@@ -162,11 +162,9 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle update of the timer
 	Thread.new {
-		$time = Time.new
-
 		while (true) 
-			sleep(0.5)
-			$time = $time + 0.5
+			sleep(0.1)
+			$time = $time + 0.1
 		end
 	}
 
@@ -187,8 +185,16 @@ def setup(hostname, port, nodes_txt, config_file)
 		sequence_to_start = 1
 		
 		while (true)
+			# Reset graph every update interval
+			$graph = NodeGraph.new
+
 			# Reset list of received lst packets every update interval
 			$lst_received = Hash.new { | h, k | h[k] = [] }
+
+			# # Ensures that the first set of link state packets are sent out
+			# if ( sequence_to_start != 1 )
+			# 	$sequence_num = $sequence_num + 1
+			# end
 
 			# Set up link state packet to be sent out
 			link_state_packet = ''
@@ -201,14 +207,11 @@ def setup(hostname, port, nodes_txt, config_file)
 			$neighbors.each do | node_neighbor, neighbor_info |	
 				# Send out link state packets of neighbors to each neighbor
 				neighbor_info[1].puts( link_state_packet )
-			end
+			end		
 
-			# Ensures that the first set of link state packets are sent out
-			if ( sequence_to_start != 1 )
-				$sequence_num = $sequence_num + 1
-			end
-
+			# Increment sequence number
 			sequence_to_start = sequence_to_start + 1
+			$sequence_num = $sequence_num + 1
 
 			# Sleep until update interval time
 			sleep($update_int)
