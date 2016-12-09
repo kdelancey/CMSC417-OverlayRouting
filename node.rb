@@ -23,7 +23,7 @@ $neighbors = Hash.new		# Hash of all open sockets (neighbors) to this node
 
 $config_options = nil		# Array of all config options
 $update_int = nil			# How often routing updates should occur (secs)
-$max_pyld = nil				# Maximum size of information that can be sent (bytes)
+$max_pyld = nil				# Maximum size of neighbor_information that can be sent (bytes)
 $pingTimeout = nil			# Given timeout of ping (secs)
 
 $time = nil					# Internal clock of this node
@@ -79,7 +79,14 @@ def sendmsg()
 end
 
 def ping(dst, num_pings, delay)
-	$commandQueue.push("PING #{dst} #{num_pings} #{delay}")
+	seq_id = 0
+
+	while ( num_pings != 0 )
+		$commandQueue.push("PING #{dst} #{seq_id}")
+		num_pings = num_pings - 1
+		seq_id = seq_id + 1
+		sleep(delay)
+	end
 end
 
 def traceroute(dst)
@@ -118,12 +125,12 @@ def commands
 		case cmd
 		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
 		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2])
+		when "EDGEU"; edgeu(arr[1], arr[2].to_i)
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
 		when "SENDMSG"; sendmsg()
-		when "PING"; ping(arr[1], arr[2], arr[3])
+		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
 		when "TRACEROUTE"; traceroute(arr[1])
 		when "FTP"; ftp()
 		when "CIRCUITB"; circuitb()
@@ -160,8 +167,8 @@ def setup(hostname, port, nodes_txt, config_file)
 		$time = Time.new
 
 		while (true) 
-			sleep(0.5)
-			$time = $time + 0.5
+			sleep(0.1)
+			$time = $time + 0.1
 		end
 	}
 
@@ -175,44 +182,43 @@ def setup(hostname, port, nodes_txt, config_file)
 		commandHandler
 	}
 	
-	# # Thread to handle the creation of Link State Updates
-	# Thread.new {
-	# 	sleep(2)
-	# 	sequence_to_start = 1
+	# Thread to handle the creation of Link State Updates
+	Thread.new {
+		# Wait to start up other resources
+		sleep(2)
+		sequence_to_start = 1
 		
-	# 	while (true)
-	# 		# Sleep until update interval time
-	# 		sleep($update_int)
+		while (true)
+			# Reset list of received lst packets every update interval
+			$lst_received = Hash.new { | h, k | h[k] = [] }
 
-	# 		# Reset list of received lst packets every update interval
-	# 		$lst_received = Hash.new { | h, k | h[k] = [] }
-
-	# 		# Set up lst packets to be sent out
-	# 		packet_array = Array.new
+			# Set up link state packet to be sent out
+			link_state_packet = ''
 			
-	# 		$neighbors.each do | edgeName, info |
-	# 			# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-	# 			packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{sequence_to_start} #{$hostname}"
-	# 		end
+			$neighbors.each do | node_neighbor, neighbor_info |
+				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+				link_state_packet << "LSU #{$hostname} #{node_neighbor} #{neighbor_info[0]} #{sequence_to_start} #{$hostname}\n"
+			end
 
-	# 		$neighbors.each do | edgeName, info |	
-	# 			#send out link state packets of neighbors to each neighbor
-	# 			packet_array.each do | link_state_packet |
-	# 				#Send message for LinkStateUpdate
-	# 				info[1].puts( link_state_packet )
-	# 			end
-	# 		end
+			$neighbors.each do | node_neighbor, neighbor_info |	
+				# Send out link state packets of neighbors to each neighbor
+				neighbor_info[1].puts( lsp )
+			end
 
-	# 		# Ensures that the first set of link state packets are sent out
-	# 		if ( sequence_to_start != 1 )
-	# 			$sequence_num = $sequence_num + 1
-	# 		end
+			# Ensures that the first set of link state packets are sent out
+			if ( sequence_to_start != 1 )
+				$sequence_num = $sequence_num + 1
+			end
 
-	# 		sequence_to_start = sequence_to_start + 1
+			sequence_to_start = sequence_to_start + 1
 
-	# 		$graph.update_routing_table($hostname)
-	# 	end
-	# }
+			# Sleep until update interval time
+			sleep($update_int)
+
+			# Update routing table using Dijkstra's algorithm
+			$graph.update_routing_table($hostname)
+		end
+	}
 
 	# Main thread that takes in standard input for commands
 	while (true)

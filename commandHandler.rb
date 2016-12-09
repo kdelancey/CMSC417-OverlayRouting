@@ -8,8 +8,11 @@ def commandHandler
 	def self.edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
+		src_ip = msgParsed[1]
+		dst_ip = msgParsed[2]
 		dst = msgParsed[3]
 
+		# Connection hasn't been made to DST already
 		if ($neighbors[dst] == nil)
 			# Adds edge of COST 1 to DST
 			$rt_table[dst] = [dst, 1]
@@ -23,11 +26,11 @@ def commandHandler
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
 			# Format: [DSTIP] [SRCIP] [CURRENTNODENAME]
-			str_request = "REQUEST:EDGEB #{msgParsed[2]} #{msgParsed[1]} #{$hostname}"
+			str_request = "REQUEST:EDGEB #{dst_ip} #{src_ip} #{$hostname}"
 			
 			# Open a TCPSocket with the [DSTIP] on the given
 			# port associated with DST in nodes_map
-			$neighbors[dst] = [1, TCPSocket.open(msgParsed[2], dstPort)]
+			$neighbors[dst] = [1, TCPSocket.open(dst_ip, dstPort)]
 			$neighbors[dst][1].puts(str_request)
 		end
 	end
@@ -51,9 +54,9 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		cost = msgParsed[2].to_i
+		cost = msgParsed[2]
 
-		# ALWAYS update DST's cost
+		# Update DST's cost
 		$neighbors[dst][0] = cost
 
 		# If new cost to DST is better than previous route to DST,
@@ -68,40 +71,55 @@ def commandHandler
 	end
 
 	def self.lsu_command(threadMsg)
-		# FORMAT of msgParsed: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-		msgParsed = threadMsg.split(" ")
-		
-		src = msgParsed[1]
-		dst = msgParsed[2]
-		cost = msgParsed[3].to_i
-		seq_num = msgParsed[4].to_i
-		node_sent_from = msgParsed[5]
-		
-		# Don't send out link state packet if it's the same node
-		if ( $hostname.eql?(src) )
-			return
-		end
+		# FORMAT of LSU line: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+
+		# Split up link state packets
+		lsu_array = threadMsg.split("\n")
+
+		# Check first if these link state packets needs to be sent out
+		lsu_check = lsu_array[0].split(" ")
+		check_src = lsu_check[2]
+		check_seq_num = msgParsed[4].to_i
 
 		# Don't send out link state packet if it's an older sequence number
-		if ( seq_num < $sequence_num )
+		if ( check_seq_num < $sequence_num )
 			return
 		end
 
-		# Send out new link state packet coming from this node
-		lsu_packet = "LSU #{src} #{dst} #{cost} #{seq_num} #{$hostname}"
+		# Don't send out link state packets if it's the same node
+		if ( $hostname.eql?(check_src) )
+			return
+		end
 
-		# Add to received lst packets to ensure it won't send same one
-		$lst_received[src] << node_sent_from
+		lsu_packet = ''
 
-		# Add edge to graph
-		$graph.add_edge(src, dst, cost)
+		lsu_array.each do | link_state_packet |
 
-		# Send out this link state update to all applicable neighbors
-		$neighbors.each do | edgeName, info |	 
-			# Check whether it received this specific lst packet from
-			# this neighbor
-			if ( !$lst_received[src].include?(edgeName) )
-				info[1].puts( lsu_packet )
+			# FORMAT of msgParsed: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
+			msgParsed = link_state_packet.split(" ")
+		
+			src = msgParsed[1]
+			dst = msgParsed[2]
+			cost = msgParsed[3].to_i
+			seq_num = msgParsed[4].to_i
+			node_sent_from = msgParsed[5]
+
+			# Add edge to graph
+			$graph.add_edge(src, dst, cost)		
+
+			# Send out new link state packet coming from this node
+			lsu_packet << "LSU #{src} #{dst} #{cost} #{seq_num} #{$hostname}\n"
+
+			# Add to received lst packets to ensure it won't send same one
+			$lst_received[src] << node_sent_from
+
+			# Send out this link state update to all applicable neighbors
+			$neighbors.each do | node_neighbor, neighbor_info |	 
+				# Check whether it received this specific lst packet from
+				# this neighbor
+				if ( !$lst_received[src].include?(node_neighbor) )
+					neighbor_info[1].puts( lsu_packet )
+				end
 			end
 		end
 	end
@@ -154,18 +172,21 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		ping_seq_id = msgParsed[2]
+		seq_id = msgParsed[2]
 		time_sent = msgParsed[3].to_f
 		src = msgParsed[4]
 
+		# Receives ACK
 		if ( $hostname.eql?(src) )
 			round_trip_time = $time.to_f - time_sent
 
 			if ( round_trip_time > $pingTimeout )
 				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
 			else
-				STDOUT.puts "#{ping_seq_id} #{dst} #{round_trip_time}"
+				STDOUT.puts "#{seq_id} #{dst} #{round_trip_time}"
 			end
+
+		# Not SRC so continue on route going back to SRC
 		else
 			ping_next_hop = $rt_table[src][0]
 			$neighbors[ping_next_hop][1].puts(threadMsg)
@@ -177,7 +198,7 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		ping_seq_id = msgParsed[2]
+		seq_id = msgParsed[2]
 		time_sent = msgParsed[3].to_f
 		src = msgParsed[4]
 
@@ -185,11 +206,11 @@ def commandHandler
 		if ( $hostname.eql?(dst) )
 			ping_next_hop = $rt_table[src][0]
 
-			ping_success_packet = "PINGSUCCESS #{dst} #{ping_seq_id} #{time_sent} #{src}"
+			ping_success_packet = "PINGSUCCESS #{dst} #{seq_id} #{time_sent} #{src}"
 
 			$neighbors[ping_next_hop][1].puts(ping_success_packet)
 
-		# Send ping to nextHop of current node
+		# Otherwise, send ping to nextHop of current node
 		else
 			ping_next_hop = $rt_table[dst][0]
 
@@ -206,42 +227,26 @@ def commandHandler
 	end
 
 	def self.ping_command(threadMsg)
-		# FORMAT of msgParsed: [PING] [DST] [NUM PINGS] [DELAY]
+		# FORMAT of msgParsed: [PING] [DST] [SEQ ID]
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		num_pings = msgParsed[2].to_i
-		delay = msgParsed[3].to_i
-
-		ping_seq_id = 0
+		seq_id = msgParsed[2]
 
 		# Ping itself
 		if ( $hostname.eql?(dst) )
-			while ( num_pings > 0 )
-				STDOUT.puts "#{ping_seq_id} #{dst} 0.0"
+			STDOUT.puts "#{seq_id} #{dst} 0.0"
+		else		
+			ping_next_hop = $rt_table[dst][0]
 
-				ping_seq_id = ping_seq_id + 1
-				num_pings = num_pings - 1
-				
-				sleep(delay)
-			end
-		else
-			while ( num_pings > 0 )
-				ping_next_hop = $rt_table[dst][0]
+			# No path to get to DST
+			if ( ping_next_hop == nil )
+				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
+			else
+				time_sent = $time.to_f
+				ping_packet = "SENDPING #{dst} #{seq_id} #{time_sent} #{$hostname}"
 
-				# No path to get to DST
-				if ( ping_next_hop == nil )
-					STDOUT.puts "PING ERROR: HOST UNREACHABLE"
-				else
-					time_sent = $time.to_f
-					ping_packet = "SENDPING #{dst} #{ping_seq_id} #{time_sent} #{$hostname}"
-					$neighbors[ping_next_hop][1].puts(ping_packet)
-				end
-
-				ping_seq_id = ping_seq_id + 1
-				num_pings = num_pings - 1
-
-				sleep(delay)
+				$neighbors[ping_next_hop][1].puts(ping_packet)
 			end
 		end
 	end
@@ -266,7 +271,7 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		time_to_node = msgParsed[2].to_f
+		time_to_node = msgParsed[2]
 		hop_count = msgParsed[3]
 		src = msgParsed[4]
 
@@ -284,7 +289,7 @@ def commandHandler
 
 		dst = msgParsed[1]
 		time_sent = msgParsed[2].to_f
-		hop_count = msgParsed[3].to_i + 1
+		hop_count = msgParsed[3].to_i
 		src = msgParsed[4]
 
 		time_to_node = $time.to_f - time_sent
@@ -313,6 +318,7 @@ def commandHandler
 
 					$neighbors[tr_next_hop][1].puts(tr_err_packet)
 				else
+					hop_count = hop_count + 1
 					sendtr_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{src}"
 					$neighbors[tr_next_hop][1].puts(sendtr_packet)
 				end
@@ -330,13 +336,14 @@ def commandHandler
 		# Source node has hop count of 0
 		STDOUT.puts "#{hop_count} #{$hostname} 0.0"
 
+		hop_count = hop_count + 1
+
 		# Continue traceroute if DST isn't itself
 		if ( !$hostname.eql?(dst) )
 			tr_next_hop = $rt_table[dst][0]
 
 			# No path to get to DST
 			if (tr_next_hop == nil )
-				hop_count = hop_count + 1
 				STDOUT.puts "TIMEOUT ON #{hop_count}"
 			else
 				time_sent = $time.to_f
@@ -346,40 +353,39 @@ def commandHandler
 		end
 	end
 
-	while (true)
+	while (true)	
 		threadMsg = nil
-		
-		# Check whether Queue has a message/command to process
+
 		if ( !$commandQueue.empty? )
 			threadMsg = $commandQueue.pop
 
-			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )	
+			if ( (!threadMsg.include? "REQUEST:" ) && (threadMsg.include? "EDGEB" ) )	
 				edgeb_command(threadMsg)			
-			elsif (threadMsg.include?"EDGED")	
+			elsif (threadMsg.include? "EDGED" )	
 				edged_command(threadMsg)
-			elsif (threadMsg.include?"EDGEU")	
+			elsif (threadMsg.include? "EDGEU" )	
 				edgeu_command(threadMsg)
-			elsif (threadMsg.include?"LSU")
+			elsif (threadMsg.include? "LSU" )
 				lsu_command(threadMsg)
-			elsif (threadMsg.include?"SENDMSG")
+			elsif (threadMsg.include? "SENDMSG" )
 				sendmsg_command(threadMsg)
 			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
 				$commandQueue.push(requestMatch.post_match)
-			elsif (threadMsg.include?"SENDPING")
+			elsif (threadMsg.include? "SENDPING" )
 				sendping_command(threadMsg)
-			elsif (threadMsg.include?"PINGERROR")
+			elsif (threadMsg.include? "PINGERROR" )
 				pingerror_command(threadMsg)
-			elsif (threadMsg.include?"PINGSUCCESS")
+			elsif (threadMsg.include? "PINGSUCCESS" )
 				pingsuccess_command(threadMsg)
-			elsif (threadMsg.include?"PING")
+			elsif (threadMsg.include? "PING" )
 				ping_command(threadMsg)
-			elsif (threadMsg.include?"TRACEROUTE")
+			elsif (threadMsg.include? "TRACEROUTE" )
 				traceroute_command(threadMsg)
-			elsif (threadMsg.include?"SENDTR")
+			elsif (threadMsg.include? "SENDTR" )
 				sendtr_command(threadMsg)
-			elsif (threadMsg.include?"TRERROR")
+			elsif (threadMsg.include? "TRERROR" )
 				trerror_command(threadMsg)
-			elsif (threadMsg.include?"TRSUCCESS")
+			elsif (threadMsg.include? "TRSUCCESS" )
 				trsuccess_command(threadMsg)
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
