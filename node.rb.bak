@@ -2,9 +2,6 @@ require 'socket'
 require 'thread'
 require 'time'
 
-require './header'
-require './fragment'
-require './segment'
 require './utility'
 require './server'
 require './commandHandler'
@@ -13,7 +10,7 @@ require './nodeGraph'
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
 
-$INFINITY = 2147483647		# Indicates no current path to DST
+$INFINITY = 2147483647		# Indicate no current path to DST
 
 $commandQueue = Queue.new	# Queue of messages/commands to process
 
@@ -23,18 +20,20 @@ $neighbors = Hash.new		# Hash of all open sockets (neighbors) to this node
 
 $config_options = nil		# Array of all config options
 $update_int = nil			# How often routing updates should occur (secs)
-$max_pyld = nil				# Maximum size of neighbor_information that can be sent (bytes)
-$pingTimeout = nil			# Given timeout of ping (secs)
+$max_pyld = nil				# Maximum size of information that can be sent (bytes)
+$timeout = nil				# Given timeout of ping (secs)
 
-$time = nil					# Internal clock of this node
-
+$time = Time.now			# Internal clock of this node
 $rt_table = Hash.new 		# Routing table of this node
-							# FORMAT: [best nextHop node, cost of travel dest]
-
+							# FORMAT: [best nextHop node, cost of travel dest, latest sequence # from dst]
 $sequence_num = 0			# Sequence number for link state packets
 $lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
 $graph = NodeGraph.new		# Graph that represents the network with vertices and edges
+
+#$sequence_to_message = Array.new #Holds a hash of key value pairs in the form: 
+								#	hash of {seq # -> hash of {origin node -> array of[nodes reachable]} }.
+								#Done to ensure that a message is not resent on a link/reused on a node.
 							
 # --------------------- Part 0 --------------------- # 
 
@@ -74,19 +73,12 @@ def sendmsg()
 	STDOUT.puts "SENDMSG: not implemented"
 end
 
-def ping(dst, num_pings, delay)
-	seq_id = 0
-
-	while ( num_pings != 0 )
-		$commandQueue.push("PING #{dst} #{seq_id}")
-		num_pings = num_pings - 1
-		seq_id = seq_id + 1
-		sleep(delay)
-	end
+def ping()
+	STDOUT.puts "PING: not implemented"
 end
 
-def traceroute(dst)
-	$commandQueue.push("TRACEROUTE #{dst}")
+def traceroute()
+	STDOUT.puts "TRACEROUTE: not implemented"
 end
 
 def ftp()
@@ -96,16 +88,15 @@ end
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb(circuit_id, dst, circuit_list)
-	circuit_nodes = circuit_list.split(",")
+def circuitb()
 	STDOUT.puts "CIRCUITB: not implemented"
 end
 
-def circuitm(circuit_id, message)
+def circuitm()
 	STDOUT.puts "CIRCUITM: not implemented"
 end
 
-def circuitd(circuit_id)
+def circuitd()
 	STDOUT.puts "CIRCUITD: not implemented"
 end
 
@@ -127,12 +118,12 @@ def commands
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
 		when "SENDMSG"; sendmsg()
-		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
-		when "TRACEROUTE"; traceroute(arr[1])
+		when "PING"; ping()
+		when "TRACEROUTE"; traceroute()
 		when "FTP"; ftp()
-		when "CIRCUITB"; circuitb(arr[1], arr[2], arr[3])
-		when "CIRCUITM"; circuitm(arr[1], arr[2])
-		when "CIRCUITD"; circuitd(arr[1])
+		when "CIRCUITB"; circuitb()
+		when "CIRCUITM"; circuitm()
+		when "CIRCUITD"; circuitd()
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end
@@ -147,22 +138,20 @@ def setup(hostname, port, nodes_txt, config_file)
 	$nodes_map 		= Utility.read_nodes(nodes_txt)
 
 	$config_options = Utility.read_config(config_file)
-	$update_int 	= $config_options['updateInterval'].to_f
-	$max_pyld 		= $config_options['maxPayload'].to_f
-	$pingTimeout 	= $config_options['pingTimeout'].to_f
+	$update_int 	= $config_options['updateInterval'].to_i
+	$max_pyld 		= $config_options['maxPayload'].to_i
+	$timeout 		= $config_options['pingTimeout'].to_i
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
 	$nodes_map.each do | node_name, port |
 		if ( !node_name.eql?($hostname) )
-			$rt_table[node_name] = [nil, $INFINITY]
+			$rt_table[node_name] = [nil, $INFINITY, 0]
 		end
 	end
 
 	# Thread to handle update of the timer
 	Thread.new {
-		$time = Time.new
-
 		while (true) 
 			sleep(0.5)
 			$time = $time + 0.5
@@ -181,41 +170,36 @@ def setup(hostname, port, nodes_txt, config_file)
 	
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
-		# Wait to start up other resources
-		sleep(1)
 		sequence_to_start = 1
 		
 		while (true)
-			# Reset list of received lst packets every update interval
-			$lst_received = Hash.new { | h, k | h[k] = [] }
+			# Sleep until update interval time
+			sleep($update_int)
+			$lst_received = Hash.new {|h,k| h[k]=[]}
 
-			# Set up link state packet to be sent out
-			link_state_packet = ''
+			packet_array = Array.new
 			
-			$neighbors.each do | node_neighbor, neighbor_info |
+			$neighbors.each do | edgeName, info |
 				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
-				link_state_packet << "LSU #{$hostname} #{node_neighbor} #{neighbor_info[0]} #{sequence_to_start} #{$hostname}\n"
+				packet_array << "LSU #{$hostname} #{edgeName} #{info[0]} #{$sequence_to_start} #{$hostname}"
 			end
 
-			$neighbors.each do | node_neighbor, neighbor_info |	
-				# Send out link state packets of neighbors to each neighbor
-				neighbor_info[1].puts( link_state_packet )
-			end
-
-			# Ensures that the first set of link state packets are sent out
-			if ( sequence_to_start != 1 )
-				$sequence_num = $sequence_num + 1
+			$neighbors.each do | edgeName, info |	
+				#send out link state packets of neighbors to each neighbor
+				packet_array.each do | link_state_packet |
+					#Send message for LinkStateUpdate
+					info[1].puts( link_state_packet )
+				end
 			end
 
 			sequence_to_start = sequence_to_start + 1
+			$sequence_num = $sequence_num + 1
 
-			# Sleep until update interval time
-			sleep($update_int)
-
-			# Update routing table using Dijkstra's algorithm
 			$graph.update_routing_table($hostname)
 		end
 	}
+
+	sleep(0.5)
 
 	# Main thread that takes in standard input for commands
 	while (true)
