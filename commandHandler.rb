@@ -5,6 +5,9 @@ require 'socket'
 # ====================================================================
 def commandHandler
 
+	$id_to_fragment = Hash.new 	# used specifically to take in recieved fragments for SENDMSG
+								# {segment_id -> array of fragments}
+
 	def edgeb_command(threadMsg)
 		# Format of msgParsed: [EDGEB] [SRCIP] [DSTIP] [DST]
 		msgParsed = threadMsg.split(" ")
@@ -366,9 +369,15 @@ def commandHandler
 			elsif (threadMsg.include? "LSU" )
 				lsu_command(threadMsg)
 			elsif (threadMsg.include? "SENDMSG" )
-				sendmsg_command(threadMsg)
+				SENDMSG.command(threadMsg)
 			elsif ( (requestMatch = /REQUEST:/.match(threadMsg) ) != nil )				
 				$commandQueue.push(requestMatch.post_match)
+			elsif ( (passthroughMatch = /^PT:/.match(threadMsg) ) != nil )				
+				# Push PT (passthrough) command to be run by node
+				SENDMSG.passthrough_command(passthroughMatch.post_match)
+			elsif ( (recmsgMatch = /^RECMSG:/.match(threadMsg) ) != nil )				
+				# Push RECMSG: (receive message fragment) command to be run by node
+				SENDMSG.recmsg_command(recmsgMatch.post_match)
 			elsif (threadMsg.include? "SENDPING" )
 				sendping_command(threadMsg)
 			elsif (threadMsg.include? "PINGERROR" )
@@ -385,6 +394,12 @@ def commandHandler
 				trerror_command(threadMsg)
 			elsif (threadMsg.include? "TRSUCCESS" )
 				trsuccess_command(threadMsg)
+			elsif (threadMsg.include? "CIRCUITB")
+				circuitb_command(threadMsg)	
+			elsif (threadMsg.include? "CIRCUITM")
+					
+			elsif (threadMsg.include? "CIRCUITD")
+					
 			else
 				STDOUT.puts "Invalid command or not implemented yet"
 			end			

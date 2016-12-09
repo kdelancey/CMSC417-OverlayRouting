@@ -1,5 +1,3 @@
-require './header'
-
 class Fragment
 	@hdr
 	@frgmt
@@ -10,7 +8,7 @@ class Fragment
 	end
 	
 	def to_s
-		return hdr.to_s + frgmt
+		@hdr.to_s + @frgmt
 	end
 	
 	def get_hdr

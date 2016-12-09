@@ -9,6 +9,7 @@ require './utility'
 require './server'
 require './commandHandler'
 require './nodeGraph'
+require './sendmsg_command'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
@@ -35,11 +36,13 @@ $sequence_num = 0			# Sequence number for link state packets
 $lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
 $graph = NodeGraph.new		# Graph that represents the network with vertices and edges
+
+$circuits = Hash.new 		# Hash of all circuits
 							
 # --------------------- Part 0 --------------------- # 
 
-def edgeb(src_ip, dst_ip, dst)
-	$commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
+def edgeb(line)
+	$commandQueue.push(line)
 end
 
 def dumptable(filename)
@@ -48,19 +51,18 @@ end
 
 def shutdown()
 	STDOUT.flush
-	STDERR.flush
 	exit(0)
 end
 
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(dst)
-	$commandQueue.push("EDGED #{dst}")
+def edged(line)
+	$commandQueue.push(line)
 end
 
-def edgeu(dst, cost)
-	$commandQueue.push("EDGEU #{dst} #{cost}")
+def edgeu(line)
+	$commandQueue.push(line)
 end
 
 def status()
@@ -70,8 +72,8 @@ end
 
 # --------------------- Part 2 --------------------- # 
 
-def sendmsg()
-	STDOUT.puts "SENDMSG: not implemented"
+def sendmsg(line)
+	$commandQueue.push(line)
 end
 
 def ping(dst, num_pings, delay)
@@ -85,8 +87,8 @@ def ping(dst, num_pings, delay)
 	end
 end
 
-def traceroute(dst)
-	$commandQueue.push("TRACEROUTE #{dst}")
+def traceroute(line)
+	$commandQueue.push(line)
 end
 
 def ftp()
@@ -96,9 +98,8 @@ end
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb(circuit_id, dst, circuit_list)
-	circuit_nodes = circuit_list.split(",")
-	STDOUT.puts "CIRCUITB: not implemented"
+def circuitb(line)
+	$commandQueue.push(line)
 end
 
 def circuitm(circuit_id, message)
@@ -120,17 +121,17 @@ def commands
 		arr = line.split(' ')
 		cmd = arr[0]
 		case cmd
-		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2])
+		when "EDGEB"; edgeb(line)
+		when "EDGED"; edged(line)
+		when "EDGEU"; edgeu(line)
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg()
+		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
-		when "TRACEROUTE"; traceroute(arr[1])
+		when "TRACEROUTE"; traceroute(line)
 		when "FTP"; ftp()
-		when "CIRCUITB"; circuitb(arr[1], arr[2], arr[3])
+		when "CIRCUITB"; circuitb(line)
 		when "CIRCUITM"; circuitm(arr[1], arr[2])
 		when "CIRCUITD"; circuitd(arr[1])
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
