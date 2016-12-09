@@ -10,6 +10,10 @@ require './server'
 require './commandHandler'
 require './nodeGraph'
 require './sendmsg_command'
+require './ping'
+require './traceroute'
+require './edge'
+require './linkstateupdate'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
@@ -38,6 +42,9 @@ $lst_received = Hash.new 	# Keeps track of which nodes it has received link stat
 $graph = NodeGraph.new		# Graph that represents the network with vertices and edges
 
 $circuits = Hash.new 		# Hash of all circuits
+
+$id_to_fragment = Hash.new 	# used specifically to take in recieved fragments for SENDMSG
+							# [segment_id -> array of fragments]
 							
 # --------------------- Part 0 --------------------- # 
 
@@ -182,30 +189,24 @@ def setup(hostname, port, nodes_txt, config_file)
 	Thread.new {
 		# Wait to start up other resources
 		sleep(1)
+
 		sequence_to_start = 1
 		
 		while (true)
-			# Reset graph every update interval
-			$graph = NodeGraph.new
-
 			# Reset list of received lst packets every update interval
 			$lst_received = Hash.new { | h, k | h[k] = [] }
-
-			# # Ensures that the first set of link state packets are sent out
-			# if ( sequence_to_start != 1 )
-			# 	$sequence_num = $sequence_num + 1
-			# end
 
 			# Set up link state packet to be sent out
 			link_state_packet = ''
 			
+			# Append new LSU packet on a new line
 			$neighbors.each do | node_neighbor, neighbor_info |
 				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 				link_state_packet << "LSU #{$hostname} #{node_neighbor} #{neighbor_info[0]} #{sequence_to_start} #{$hostname}\n"
 			end
 
+			# Send out link state packets of neighbors to each neighbor
 			$neighbors.each do | node_neighbor, neighbor_info |	
-				# Send out link state packets of neighbors to each neighbor
 				neighbor_info[1].puts( link_state_packet )
 			end		
 
