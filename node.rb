@@ -125,7 +125,7 @@ def commands
 		case cmd
 		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
 		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2].to_i)
+		when "EDGEU"; edgeu(arr[1], arr[2])
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
@@ -167,8 +167,8 @@ def setup(hostname, port, nodes_txt, config_file)
 		$time = Time.new
 
 		while (true) 
-			sleep(0.1)
-			$time = $time + 0.1
+			sleep(0.5)
+			$time = $time + 0.5
 		end
 	}
 
@@ -185,7 +185,7 @@ def setup(hostname, port, nodes_txt, config_file)
 	# Thread to handle the creation of Link State Updates
 	Thread.new {
 		# Wait to start up other resources
-		sleep(2)
+		sleep(1)
 		sequence_to_start = 1
 		
 		while (true)
@@ -202,7 +202,7 @@ def setup(hostname, port, nodes_txt, config_file)
 
 			$neighbors.each do | node_neighbor, neighbor_info |	
 				# Send out link state packets of neighbors to each neighbor
-				neighbor_info[1].puts( lsp )
+				neighbor_info[1].puts( link_state_packet )
 			end
 
 			# Ensures that the first set of link state packets are sent out

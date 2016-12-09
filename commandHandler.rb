@@ -21,7 +21,7 @@ def commandHandler
 			$graph.add_edge($hostname, dst, 1)
 			
 			# DST's port number
-			dstPort = $nodes_map[dst]
+			dst_port = $nodes_map[dst]
 			
 			# Send request to DST to add edge to its routing
 			# table. Flip recieved command to do so.
@@ -30,7 +30,7 @@ def commandHandler
 			
 			# Open a TCPSocket with the [DSTIP] on the given
 			# port associated with DST in nodes_map
-			$neighbors[dst] = [1, TCPSocket.open(dst_ip, dstPort)]
+			$neighbors[dst] = [1, TCPSocket.open(dst_ip, dst_port)]
 			$neighbors[dst][1].puts(str_request)
 		end
 	end
@@ -54,7 +54,7 @@ def commandHandler
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		cost = msgParsed[2]
+		cost = msgParsed[2].to_i
 
 		# Update DST's cost
 		$neighbors[dst][0] = cost
@@ -78,8 +78,8 @@ def commandHandler
 
 		# Check first if these link state packets needs to be sent out
 		lsu_check = lsu_array[0].split(" ")
-		check_src = lsu_check[2]
-		check_seq_num = msgParsed[4].to_i
+		check_src = lsu_check[1]
+		check_seq_num = lsu_check[4].to_i
 
 		# Don't send out link state packet if it's an older sequence number
 		if ( check_seq_num < $sequence_num )
@@ -94,7 +94,6 @@ def commandHandler
 		lsu_packet = ''
 
 		lsu_array.each do | link_state_packet |
-
 			# FORMAT of msgParsed: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 			msgParsed = link_state_packet.split(" ")
 		
@@ -112,14 +111,13 @@ def commandHandler
 
 			# Add to received lst packets to ensure it won't send same one
 			$lst_received[src] << node_sent_from
+		end
 
-			# Send out this link state update to all applicable neighbors
-			$neighbors.each do | node_neighbor, neighbor_info |	 
-				# Check whether it received this specific lst packet from
-				# this neighbor
-				if ( !$lst_received[src].include?(node_neighbor) )
-					neighbor_info[1].puts( lsu_packet )
-				end
+		# Send out this link state update to all applicable neighbors
+		$neighbors.each do | node_neighbor, neighbor_info |	 
+			# Check whether this neighbor received this set of lst packets already
+			if ( !$lst_received[check_src].include?(node_neighbor) )
+				neighbor_info[1].puts( lsu_packet )
 			end
 		end
 	end
@@ -303,7 +301,7 @@ def commandHandler
 		
 		# Traceroute success to this node, so send back success message
 		else
-			tr_success_packet = "TRSUCCESS #{dst} #{time_to_node} #{hop_count} #{src}"
+			tr_success_packet = "TRSUCCESS #{$hostname} #{time_to_node} #{hop_count} #{src}"
 
 			$neighbors[tr_next_hop][1].puts(tr_success_packet)
 
@@ -358,7 +356,7 @@ def commandHandler
 
 		if ( !$commandQueue.empty? )
 			threadMsg = $commandQueue.pop
-
+			
 			if ( (!threadMsg.include? "REQUEST:" ) && (threadMsg.include? "EDGEB" ) )	
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include? "EDGED" )	
