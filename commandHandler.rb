@@ -17,6 +17,8 @@ def commandHandler
 				Edge.edged(threadMsg)
 			elsif (threadMsg.include? "EDGEU" )	
 				Edge.edgeu(threadMsg)
+			elsif (threadMsg.include? "EDGEREMOVE")
+				Edge.edge_remove(threadMsg)
 			elsif (threadMsg.include? "LSU" )
 				LinkStateUpdate.lsu(threadMsg)
 			elsif (threadMsg.include? "SENDMSG" )

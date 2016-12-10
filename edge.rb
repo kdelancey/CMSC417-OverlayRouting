@@ -35,13 +35,18 @@ class Edge
 		msgParsed = threadMsg.split(" ")
 		dst = msgParsed[1]
 
+		remove_edge_packet = "EDGEREMOVE #{$hostname} #{dst}"
+		$neighbors.each do | node_neighbor, neighbor_info |	
+			neighbor_info[1].puts( remove_edge_packet )
+		end	
+
 		# Removes the edge between current node and DST
 		# Closes socket connection between the two nodes
 		$neighbors[dst][1].close
 		$neighbors.delete(dst)
 		
 		# Remove edge from graph
-		$graph.remove_edge($hostname, dst)		
+		$graph.remove_edge($hostname, dst)	
 	end
 
 	def self.edgeu(threadMsg)
@@ -56,6 +61,16 @@ class Edge
 
 		# Update edge to dst with cost
 		$graph.add_edge($hostname, dst, cost)
+	end
+
+	def self.edge_remove(threadMsg)
+		# FORMAT of msgParsed: [EDGEREMOVE] [SRC] [DST]"
+		msgParsed = threadMsg.split(" ")
+
+		src = msgParsed[1]
+		dst = msgParsed[2]
+		
+		$graph.remove_edge(src, dst)
 	end
 
 end

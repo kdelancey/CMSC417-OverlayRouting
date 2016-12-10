@@ -189,7 +189,6 @@ def setup(hostname, port, nodes_txt, config_file)
 	Thread.new {
 		# Wait to start up other resources
 		sleep(1)
-
 		sequence_to_start = 1
 		
 		while (true)
@@ -218,7 +217,7 @@ def setup(hostname, port, nodes_txt, config_file)
 			sleep($update_int)
 
 			# Update routing table using Dijkstra's algorithm
-			$graph.update_routing_table($hostname)
+			$graph.update_routing_table($hostname)		
 		end
 	}
 

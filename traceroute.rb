@@ -83,14 +83,16 @@ class Traceroute
 		dst = msgParsed[1]
 		hop_count = 0
 
+		time_sent = $time.to_f
+
 		# Source node has hop count of 0
 		STDOUT.puts "#{hop_count} #{$hostname} 0.0"
 
+		# Increment hop count
 		hop_count = hop_count + 1
 
 		# Continue traceroute if DST isn't itself
-		if ( !$hostname.eql?(dst) )
-			time_sent = $time.to_f
+		if ( !$hostname.eql?(dst) )	
 			tr_next_hop = $rt_table[dst][0]
 
 			# No path to get to DST

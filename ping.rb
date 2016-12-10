@@ -80,6 +80,8 @@ class Ping
 		dst = msgParsed[1]
 		seq_id = msgParsed[2]
 
+		time_sent = $time.to_f
+
 		# Ping itself
 		if ( $hostname.eql?(dst) )
 			STDOUT.puts "#{seq_id} #{dst} 0.0"
@@ -89,10 +91,8 @@ class Ping
 			# No path to get to DST
 			if ( ping_next_hop == nil )
 				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
-			else
-				time_sent = $time.to_f
+			else		
 				ping_packet = "SENDPING #{dst} #{seq_id} #{time_sent} #{$hostname}"
-
 				$neighbors[ping_next_hop][1].puts(ping_packet)
 			end
 		end
