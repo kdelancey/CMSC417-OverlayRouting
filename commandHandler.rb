@@ -257,8 +257,7 @@ def commandHandler
 		if ( !$commandQueue.empty? )
 			threadMsg = $commandQueue.pop
 			
-			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )
-				puts "EDGEB BOYS " + threadMsg		
+			if ( (!threadMsg.include?"REQUEST:") && (threadMsg.include?"EDGEB") )	
 				edgeb_command(threadMsg)			
 			elsif (threadMsg.include?"EDGED")	
 				edged_command(threadMsg)
@@ -267,7 +266,6 @@ def commandHandler
 			elsif (threadMsg.include?"LSU")
 				lsu_command(threadMsg)
 			elsif (threadMsg.include?"SENDMSG")
-				puts "SENDMSG BOYS " + threadMsg
 				SENDMSG.command(threadMsg)
 			elsif ( (requestMatch = /^REQUEST:/.match(threadMsg) ) != nil )				
 				# Push REQUEST command to be run by node
