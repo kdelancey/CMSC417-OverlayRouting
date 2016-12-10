@@ -155,9 +155,9 @@ def setup(hostname, port, nodes_txt, config_file)
 	$nodes_map 		= Utility.read_nodes(nodes_txt)
 
 	$config_options = Utility.read_config(config_file)
-	$update_int 	= $config_options['updateInterval'].to_f
-	$max_pyld 		= $config_options['maxPayload'].to_f
-	$pingTimeout 	= $config_options['pingTimeout'].to_f
+	$update_int 	= $config_options['updateInterval'].to_i
+	$max_pyld 		= $config_options['maxPayload'].to_i
+	$pingTimeout 	= $config_options['pingTimeout'].to_i
 
 	# Adds every other node to this node's routing table
 	# INFINITY indicates that there is no current path to that node
@@ -170,8 +170,8 @@ def setup(hostname, port, nodes_txt, config_file)
 	# Thread to handle update of the timer
 	Thread.new {
 		while (true) 
-			sleep(0.1)
-			$time = $time + 0.1
+			sleep(1)
+			$time = $time + 1
 		end
 	}
 

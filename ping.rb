@@ -20,12 +20,12 @@ class Ping
 
 		dst = msgParsed[1]
 		seq_id = msgParsed[2]
-		time_sent = msgParsed[3].to_f
+		time_sent = msgParsed[3].to_i
 		src = msgParsed[4]
 
 		# Receives ACK
 		if ( $hostname.eql?(src) )
-			round_trip_time = $time.to_f - time_sent
+			round_trip_time = $time.to_i - time_sent
 
 			if ( round_trip_time > $pingTimeout )
 				STDOUT.puts "PING ERROR: HOST UNREACHABLE"
@@ -46,7 +46,7 @@ class Ping
 
 		dst = msgParsed[1]
 		seq_id = msgParsed[2]
-		time_sent = msgParsed[3].to_f
+		time_sent = msgParsed[3].to_i
 		src = msgParsed[4]
 
 		# If DST has been reached, send back success message
@@ -80,7 +80,7 @@ class Ping
 		dst = msgParsed[1]
 		seq_id = msgParsed[2]
 
-		time_sent = $time.to_f
+		time_sent = $time.to_i
 
 		# Ping itself
 		if ( $hostname.eql?(dst) )

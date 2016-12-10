@@ -6,7 +6,7 @@ class Traceroute
 
 		hop_count = msgParsed[1]
 		src = msgParsed[2]
-		timeout = msgParsed[3].to_f
+		timeout = msgParsed[3].to_i
 
 		if ( $hostname.eql?(src) )
 			STDOUT.puts "#{timeout} ON #{hop_count}"
@@ -21,7 +21,7 @@ class Traceroute
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		time_to_node = msgParsed[2]
+		time_to_node = msgParsed[2].to_i
 		hop_count = msgParsed[3]
 		src = msgParsed[4]
 
@@ -38,11 +38,11 @@ class Traceroute
 		msgParsed = threadMsg.split(" ")
 
 		dst = msgParsed[1]
-		time_sent = msgParsed[2].to_f
+		time_sent = msgParsed[2].to_i
 		hop_count = msgParsed[3].to_i
 		src = msgParsed[4]
 
-		time_to_node = $time.to_f - time_sent
+		time_to_node = $time.to_i - time_sent
 		tr_next_hop = $rt_table[src][0]
 		
 		# Traceroute failure on this node if it takes too long
@@ -83,10 +83,10 @@ class Traceroute
 		dst = msgParsed[1]
 		hop_count = 0
 
-		time_sent = $time.to_f
+		time_sent = $time.to_i
 
 		# Source node has hop count of 0
-		STDOUT.puts "#{hop_count} #{$hostname} 0.0"
+		STDOUT.puts "#{hop_count} #{$hostname} 0"
 
 		# Increment hop count
 		hop_count = hop_count + 1
@@ -97,7 +97,7 @@ class Traceroute
 
 			# No path to get to DST
 			if (tr_next_hop == nil )
-				timeout = $time.to_f - time_sent
+				timeout = $time.to_i - time_sent
 				STDOUT.puts "#{timeout} ON #{hop_count}"
 			else
 				traceroute_packet = "SENDTR #{dst} #{time_sent} #{hop_count} #{$hostname}"

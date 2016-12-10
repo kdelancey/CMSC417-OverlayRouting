@@ -1,12 +1,12 @@
 class Circuit
 	
-	def build(threadMsg)
-		# FORMAT of msgParsed: [CIRCUITB] [DST] [LIST OF NODES]
+	def self.build(threadMsg)
+		# FORMAT of msgParsed: [CIRCUITB] [CIRCUIT ID] [DST] [LIST OF NODES]
 		msgParsed = threadMsg.split(" ")
 
-		circuit_name = msgParsed[0]
-		dst = msgParsed[1]
-		circuit_list = msgParsed[2].split(",")
+		circuit_name = msgParsed[1]
+		dst = msgParsed[2]
+		circuit_list = msgParsed[3].split(",")
 		
 		if ($circuits.has_key?(circuit_name))
 			return
@@ -14,11 +14,11 @@ class Circuit
 	
 	end
 	
-	def message()
+	def self.message()
 	
 	end
 	
-	def deconstruct()
+	def self.deconstruct()
 	
 	end
 
