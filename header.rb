@@ -1,5 +1,3 @@
-# ----------------- PROJECT OBJECTS ---------------- # 
-
 class Header
 	attr_reader :hdr_sz #header size in bytes
 	attr_reader :src_nd #source node
@@ -35,11 +33,11 @@ class Header
 	def to_s
 		#start of packet 
 		#start of header
-		"#{hdr_sz}|"\
-		"#{src_nd}|#{dst_nd}|"\
-		"#{pkt_id}|#{msg_lngth}|"\
-		"#{more_frgmnts}|#{ordr_of_fragments}|"\
-		"#{ttl}|" 
+		"#{@hdr_sz}|" +\
+		"#{@src_nd}|#{@dst_nd}|" +\
+		"#{@pkt_id}|#{@msg_lngth}|" +\
+		"#{@more_frgmnts}|#{@ordr_of_fragment}|" +\
+		"#{@ttl}|" 
 		#end of header 
 		#start of message
 	end
@@ -52,17 +50,17 @@ class Header
 	# the total length of the header string.
 	def length_of_header
 		#length of header without header size
-		unfn_hdr = "|#{src_nd}|#{dst_nd}|"\
-			"#{pkt_id}|#{msg_lngth}|"\
-			"#{more_frgmnts}|#{ordr_of_fragments}|"\
-			"#{ttl}|" 
+		unfn_hdr = "|#{@src_nd}|#{@dst_nd}|"\
+			"#{@pkt_id}|#{@msg_lngth}|"\
+			"#{@more_frgmnts}|#{@ordr_of_fragments}|"\
+			"#{@ttl}|" 
 			
 		# if the length of unfinished header is less than or equal to 97 char long,
 		# we can assume a final hdr_len <= 99, thus add two, and set hdr_sz
 		if ( unfn_hdr.length <= 97 )
-			@hdr_sz = hdr_wo_hdrsz.length + 2
+			@hdr_sz = unfn_hdr.length + 2
 		elsif ( unfn_hdr.length <= 996 ) #JIC, if header <= 997... same deal, but 999
-			@hdr_sz = hdr_wo_hdrsz.length + 3
+			@hdr_sz = unfn_hdr.length + 3
 		end
 	end
 end

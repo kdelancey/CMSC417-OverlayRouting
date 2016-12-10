@@ -9,6 +9,11 @@ require './utility'
 require './server'
 require './commandHandler'
 require './nodeGraph'
+require './sendmsg_command'
+require './ping'
+require './traceroute'
+require './edge'
+require './linkstateupdate'
 
 $port = nil					# Node's port number
 $hostname = nil				# Node's hostname
@@ -26,7 +31,7 @@ $update_int = nil			# How often routing updates should occur (secs)
 $max_pyld = nil				# Maximum size of neighbor_information that can be sent (bytes)
 $pingTimeout = nil			# Given timeout of ping (secs)
 
-$time = nil					# Internal clock of this node
+$time = Time.new			# Internal clock of this node
 
 $rt_table = Hash.new 		# Routing table of this node
 							# FORMAT: [best nextHop node, cost of travel dest]
@@ -35,11 +40,16 @@ $sequence_num = 0			# Sequence number for link state packets
 $lst_received = Hash.new 	# Keeps track of which nodes it has received link state packets from
 
 $graph = NodeGraph.new		# Graph that represents the network with vertices and edges
+
+$circuits = Hash.new 		# Hash of all circuits
+
+$id_to_fragment = Hash.new 	# used specifically to take in recieved fragments for SENDMSG
+							# [segment_id -> array of fragments]
 							
 # --------------------- Part 0 --------------------- # 
 
-def edgeb(src_ip, dst_ip, dst)
-	$commandQueue.push("EDGEB #{src_ip} #{dst_ip} #{dst}")
+def edgeb(line)
+	$commandQueue.push(line)
 end
 
 def dumptable(filename)
@@ -48,19 +58,18 @@ end
 
 def shutdown()
 	STDOUT.flush
-	STDERR.flush
 	exit(0)
 end
 
 
 # --------------------- Part 1 --------------------- # 
 
-def edged(dst)
-	$commandQueue.push("EDGED #{dst}")
+def edged(line)
+	$commandQueue.push(line)
 end
 
-def edgeu(dst, cost)
-	$commandQueue.push("EDGEU #{dst} #{cost}")
+def edgeu(line)
+	$commandQueue.push(line)
 end
 
 def status()
@@ -70,8 +79,8 @@ end
 
 # --------------------- Part 2 --------------------- # 
 
-def sendmsg()
-	STDOUT.puts "SENDMSG: not implemented"
+def sendmsg(line)
+	$commandQueue.push(line)
 end
 
 def ping(dst, num_pings, delay)
@@ -85,8 +94,8 @@ def ping(dst, num_pings, delay)
 	end
 end
 
-def traceroute(dst)
-	$commandQueue.push("TRACEROUTE #{dst}")
+def traceroute(line)
+	$commandQueue.push(line)
 end
 
 def ftp()
@@ -96,9 +105,8 @@ end
 
 # --------------------- Part 3 --------------------- # 
 
-def circuitb(circuit_id, dst, circuit_list)
-	circuit_nodes = circuit_list.split(",")
-	STDOUT.puts "CIRCUITB: not implemented"
+def circuitb(line)
+	$commandQueue.push(line)
 end
 
 def circuitm(circuit_id, message)
@@ -120,17 +128,17 @@ def commands
 		arr = line.split(' ')
 		cmd = arr[0]
 		case cmd
-		when "EDGEB"; edgeb(arr[1], arr[2], arr[3])
-		when "EDGED"; edged(arr[1])
-		when "EDGEU"; edgeu(arr[1], arr[2])
+		when "EDGEB"; edgeb(line)
+		when "EDGED"; edged(line)
+		when "EDGEU"; edgeu(line)
 		when "DUMPTABLE"; dumptable(arr[1])
 		when "SHUTDOWN"; shutdown()
 		when "STATUS"; status()
-		when "SENDMSG"; sendmsg()
+		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
-		when "TRACEROUTE"; traceroute(arr[1])
+		when "TRACEROUTE"; traceroute(line)
 		when "FTP"; ftp()
-		when "CIRCUITB"; circuitb(arr[1], arr[2], arr[3])
+		when "CIRCUITB"; circuitb(line)
 		when "CIRCUITM"; circuitm(arr[1], arr[2])
 		when "CIRCUITD"; circuitd(arr[1])
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
@@ -161,11 +169,9 @@ def setup(hostname, port, nodes_txt, config_file)
 
 	# Thread to handle update of the timer
 	Thread.new {
-		$time = Time.new
-
 		while (true) 
-			sleep(0.5)
-			$time = $time + 0.5
+			sleep(0.1)
+			$time = $time + 0.1
 		end
 	}
 
@@ -192,28 +198,26 @@ def setup(hostname, port, nodes_txt, config_file)
 			# Set up link state packet to be sent out
 			link_state_packet = ''
 			
+			# Append new LSU packet on a new line
 			$neighbors.each do | node_neighbor, neighbor_info |
 				# FORMAT: [LSU] [SRC] [DST] [COST] [SEQ #] [NODE SENT FROM]
 				link_state_packet << "LSU #{$hostname} #{node_neighbor} #{neighbor_info[0]} #{sequence_to_start} #{$hostname}\n"
 			end
 
+			# Send out link state packets of neighbors to each neighbor
 			$neighbors.each do | node_neighbor, neighbor_info |	
-				# Send out link state packets of neighbors to each neighbor
 				neighbor_info[1].puts( link_state_packet )
-			end
+			end		
 
-			# Ensures that the first set of link state packets are sent out
-			if ( sequence_to_start != 1 )
-				$sequence_num = $sequence_num + 1
-			end
-
+			# Increment sequence number
 			sequence_to_start = sequence_to_start + 1
+			$sequence_num = $sequence_num + 1
 
 			# Sleep until update interval time
 			sleep($update_int)
 
 			# Update routing table using Dijkstra's algorithm
-			$graph.update_routing_table($hostname)
+			$graph.update_routing_table($hostname)		
 		end
 	}
 
