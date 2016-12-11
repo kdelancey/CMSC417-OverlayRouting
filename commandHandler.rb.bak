@@ -32,9 +32,9 @@ def commandHandler
 			elsif ( (match = /^FTP/.match(threadMsg))		!= nil )
 				Ftp.file_transfer(match.post_match)
 			elsif ( (match = /^FPT:/.match(threadMsg))		!= nil )				
-				Ftp.fpassthrough_command(match.post_match) # Push FPT (FTP passthrough) command to be run by node
+				Ftp.passthrough_command(match.post_match) # Push FPT (FTP passthrough) command to be run by node
 			elsif ( (match = /^FRECMSG:/.match(threadMsg) ) != nil )				
-				Ftp.frecmsg_command(match.post_match) # Push FRECMSG: (receive FTP fragment) command to be run by node
+				Ftp.recmsg_command(match.post_match) # Push FRECMSG: (receive FTP fragment) command to be run by node
 			elsif (threadMsg.include? "SENDPING" )
 				Ping.send(threadMsg)
 			elsif (threadMsg.include? "PINGERROR" )

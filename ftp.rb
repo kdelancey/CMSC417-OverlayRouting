@@ -1,21 +1,28 @@
-require './segment'
-
-class Sendmsg
-
-	# Sendmsg command.
-	# Called only on original node. Any sequential nodes should either
-	# use PASSTHROUGH or RECMSG
-	def Sendmsg.command(threadMsg) 
-		# FORMAT:
-		# [Sendmsg] [DST] [MSG]
+ def Ftp
+ 
+	def Ftp.file_transfer()
+		# FORMAT: [DST] [FILE] [FPATH]
 		msgParsed = threadMsg.split(" ", 3)
 		# Destination and message to send
-		dst = msgParsed[1]
-		msg = msgParsed[2]
+		dst = msgParsed[0]
+		file = msgParsed[1]
+		file_path = msgParsed[2]
 		
+		file_exists = File.exist?( file )
+		
+		# If does not have key in routing table, or file name is bad
+		if ( !file_exists || !$rt_table.has_key?(dst))
+			STDOUT.puts( "FTP ERROR: #{file} −− > #{dst} INTERRUPTED AFTER 0")
+			return
+		end
+		
+		# Naive use of this read. Could instead fragment by read from start to end_byte
+		file_data = IO.binread(file)
+		#FTP.command("SENDMSG #{dst} FTP:#{file_data}")
+			
 		# Socket to nextHop neighbor
 		nextHop_socket = nil
-		# If the destination node in Sendmsg command
+		# If the destination node in FTP command
 		# is NOT connected to this node, or this node itself,
 		# print failure message, and return
 		nextHop_neighbor = $rt_table[dst][0] #change doesn't exist...
@@ -23,14 +30,14 @@ class Sendmsg
 			if ( dst == $hostname ) #.. but if current node (sending to itself)...
 				STDOUT.puts msg
 			end
-			STDOUT.puts "SENDMSG ERROR: HOST UNREACHABLE" #...unconnected...
+			STDOUT.puts( "FTP ERROR: #{file} −− > #{dst} INTERRUPTED AFTER 0") #...unconnected...
 			return
 		end
 		
 		# If socket is open.
 		if ( ( nextHop_socket = $neighbors[nextHop_neighbor][1] ) != nil )
 			# Create a packet to fragment,
-			segment_of_message = Segment.new( $hostname, dst, msg, $max_pyld )
+			segment_of_message = Segment.new( $hostname, dst, file_data, $max_pyld )
 			
 			# Get array of fragments to send from packet
 			ary_of_fragments = segment_of_message.get_fragments
@@ -39,13 +46,13 @@ class Sendmsg
 			# else, sent PT:  (passthrough)
 			type_to_send = nil
 			if ( nextHop_neighbor == dst )
-				type_to_send = "RECMSG:"
+				type_to_send = "FRECMSG:"
 			else 
-				type_to_send = "PT:"
+				type_to_send = "FPT:"
 			end
 			
 			ary_of_fragments.each do | fragment_to_send |
-				passthrough_msg = type_to_send + fragment_to_send.to_s
+				passthrough_msg = type_to_send + " #{file} #{fpath} " fragment_to_send.to_s
 				#STDOUT.puts "Before sending:\n> " + passthrough_msg
 				nextHop_socket.puts(passthrough_msg)
 				sleep( 0.01 * $max_pyld)
@@ -54,13 +61,19 @@ class Sendmsg
 	
 	end
 	
-	# "Helper" sub message of Sendmsg command.
+	# "Helper" sub message of FTP command.
 	# Called on nodes on the way to the destination.
 	# Any sequential nodes should either
-	# use PT: or RECMSG:
-	def Sendmsg.passthrough_command(threadMsg)
+	# use FPT: or FRECMSG:
+	def Ftp.fpassthrough_command(threadMsg)
+	
+		# FORMAT: [FILE] [FPATH] [FRGMNT]
+		msgParsed = threadMsg.split(" ", 3)
+		# Destination and message to send
+		file = msgParsed[0]
+		fpath = msgParsed[1]
 		
-		frgmt_str = threadMsg
+		frgmt_str = msgParsed[2]
 		
 		# Convert the string representing a fragment,
 		# parse its header, and return a Fragment object
@@ -76,9 +89,9 @@ class Sendmsg
 		message_to_send = nil
 		
 		if ( nextHop_neighbor == dst)
-			message_to_send = "RECMSG:" + frgmt_str
+			message_to_send = "FRECMSG: #{file} #{fpath} " + frgmt_str
 		else
-			message_to_send = "PT:" + frgmt_str
+			message_to_send = "FPT: #{file} #{fpath} " + frgmt_str
 		end
 		
 		# Send message over socket
@@ -88,13 +101,20 @@ class Sendmsg
 		
 	end
 	
-	# "Helper" sub message of Sendmsg command.
+	# "Helper" sub message of FTP command.
 	# Called on nodes that recieves the message.
 	# Will intake fragment, and add it to a hash
 	# of started messages
-	def Sendmsg.recmsg_command(threadMsg)
+	def Ftp.frecmsg_command(threadMsg)
 	
-		frgmt_str = threadMsg
+		#{file} {fpath} {frgmt}
+		msgParsed = threadMsg.split(" ", 3)
+		# Destination and message to send
+		file = msgParsed[0]
+		fpath = msgParsed[1]
+		
+		frgmt_str = msgParsed[2]
+		
 		
 		# Parse raw string, turn into fragment, get header
 		frgmt = Segment.parse_fragment(frgmt_str)
@@ -110,9 +130,15 @@ class Sendmsg
 			$id_to_fragment[frgmt_id] << frgmt
 		end
 		
+		# Defragment array of fragments.
+		# If file path exists, write file to path.
+		# Put success.
 		if ( ( segmentMsg = Segment.defragment( $id_to_fragment[frgmt_id], $id_to_fragment ) ) != nil )
-			STDOUT.puts( "SENDMSG: #{frgmt.get_hdr.src_nd} --> " + segmentMsg )
+			if ( file_exists = File.exist?( fpath ))
+				IO.write(file, segmentMsg)
+				STDOUT.puts( "FTP: #{frgmt.get_hdr.src_nd} --> " + segmentMsg )
+			end
 		end
 	end
-	
-end
+ 
+ end
