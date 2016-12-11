@@ -11,6 +11,7 @@ require './commandHandler'
 require './nodeGraph'
 require './sendmsg_command'
 require './circuit'
+require './ftp'
 require './ping'
 require './traceroute'
 require './edge'
@@ -100,8 +101,8 @@ def traceroute(line)
 	$commandQueue.push(line)
 end
 
-def ftp()
-	STDOUT.puts "FTP: not implemented"
+def ftp(line)
+	$commandQueue.push(line)
 end
 
 
@@ -111,12 +112,12 @@ def circuitb(line)
 	$commandQueue.push(line)
 end
 
-def circuitm(circuit_id, message)
-	STDOUT.puts "CIRCUITM: not implemented"
+def circuitm(line)
+	$commandQueue.push(line)
 end
 
-def circuitd(circuit_id)
-	STDOUT.puts "CIRCUITD: not implemented"
+def circuitd(line)
+	$commandQueue.push(line)
 end
 
 
@@ -139,10 +140,10 @@ def commands
 		when "SENDMSG"; sendmsg(line)
 		when "PING"; ping(arr[1], arr[2].to_i, arr[3].to_i)
 		when "TRACEROUTE"; traceroute(line)
-		when "FTP"; ftp()
+		when "FTP"; ftp(line)
 		when "CIRCUITB"; circuitb(line)
-		when "CIRCUITM"; circuitm(arr[1], arr[2])
-		when "CIRCUITD"; circuitd(arr[1])
+		when "CIRCUITM"; circuitm(line)
+		when "CIRCUITD"; circuitd(line)
 		else STDERR.puts "ERROR: INVALID COMMAND \"#{cmd}\""
 		end
 	end

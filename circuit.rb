@@ -93,17 +93,14 @@ class Circuit
 		dst = msgParsed[1]
 		prev = msgParsed[2]
 		list_of_nodes = nil
-		STDOUT.puts( "yo" )
+		
 		if ( msgParsed == 4)
 			list_of_nodes = msgParsed[3].split(",")
 		else
-			STDOUT.puts( "yodel" )
 			if ( dst != $hostname and $neighbors.has_key?(dst) )
-			STDOUT.puts( "dst != $hostname and $neighbors.has_key?(dst)" )
 				$circuits[circuitid] = [prev, dst]
 				$neighbors[potential_next_hop][1].puts("CB: #{circuitid} #{dst} #{$hostname}")
 			elsif ( dst == $hostname )
-			STDOUT.puts( "dst == $hostname" )
 				$circuits[circuitid] = [prev, "END"]
 				send_build_success_message(circuitid, dst)
 				return
@@ -112,35 +109,34 @@ class Circuit
 				return
 			end
 		end
-		STDOUT.puts( "yodelo" )
 		# Should be the next node in circuit. 
 		# Must be a nextHop, of will throw
 		# error message back.
 		potential_next_hop = list_of_nodes[0]
-	STDOUT.puts( "yodelo" )
+		
 		if ( $neighbors.has_key?(potential_next_hop) )
 			$circuits[circuitid] = [prev, potential_next_hop]
 		else
 			send_build_error_message(circuitid, dst, prev)
 			return
 		end
-		STDOUT.puts( "yodelo" )
+		
 		#Shift list, removing first element
 		list_of_nodes.shift
-		STDOUT.puts( "yodelo" )
+		
 		# Prepare string to send
 		ret_list = list_of_nodes.to_s.delete("\s")
 		ret_list[0] = ''
 		ret_list[ret_list.length - 1] = '' 
-	STDOUT.puts( "yodelo" )
+		
 		#Send request to build.
 		$neighbors[potential_next_hop][1].puts("CB: #{circuitid} #{dst} #{$hostname} #{ret_list}")
-	STDOUT.puts( "yodelo" )	
+
 		if ($circuits.has_key?(circuitid))
 			send_build_error_message(circuitid, dst, prev)
 			return
 		end
-	STDOUT.puts( "yodelo" )	
+
 		#$neighbors[potential_next_hop][1].puts("CB: #{CIRCUITID} #{DST} #{$hostname} #{LIST OF NODES} 0")
 	
 	end

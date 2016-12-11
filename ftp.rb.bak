@@ -1,9 +1,12 @@
- def Ftp
+ # encoding: utf-8
+ class Ftp
  
-	def Ftp.file_transfer()
+	def Ftp.file_transfer(threadMsg)
+	
 		# FORMAT: [DST] [FILE] [FPATH]
 		msgParsed = threadMsg.split(" ", 3)
 		# Destination and message to send
+		
 		dst = msgParsed[0]
 		file = msgParsed[1]
 		file_path = msgParsed[2]
@@ -17,9 +20,7 @@
 		end
 		
 		# Naive use of this read. Could instead fragment by read from start to end_byte
-		file_data = IO.binread(file)
-		#FTP.command("SENDMSG #{dst} FTP:#{file_data}")
-			
+		
 		# Socket to nextHop neighbor
 		nextHop_socket = nil
 		# If the destination node in FTP command
@@ -34,29 +35,37 @@
 			return
 		end
 		
+		start_byte = 0
+		byte_space = ($max_pyld * 4)
 		# If socket is open.
 		if ( ( nextHop_socket = $neighbors[nextHop_neighbor][1] ) != nil )
-			# Create a packet to fragment,
-			segment_of_message = Segment.new( $hostname, dst, file_data, $max_pyld )
+			STDOUT.puts "2"
+			while ( (file_data = IO.binread(file, start_byte, byte_space) ) != nil)
 			
-			# Get array of fragments to send from packet
-			ary_of_fragments = segment_of_message.get_fragments
-			
-			# If nextHop is dst, send RECMSG
-			# else, sent PT:  (passthrough)
-			type_to_send = nil
-			if ( nextHop_neighbor == dst )
-				type_to_send = "FRECMSG:"
-			else 
-				type_to_send = "FPT:"
+				# Create a packet to fragment,
+				segment_of_message = Segment.new( $hostname, dst, file_data, $max_pyld )
+				
+				# Get array of fragments to send from packet
+				ary_of_fragments = segment_of_message.get_fragments
+				
+				# If nextHop is dst, send RECMSG
+				# else, sent PT:  (passthrough)
+				type_to_send = nil
+				if ( nextHop_neighbor == dst )
+					type_to_send = "FRECMSG:"
+				else 
+					type_to_send = "FPT:"
+				end
+				
+				ary_of_fragments.each do | fragment_to_send |
+					passthrough_msg = type_to_send + " #{file} #{file_path} " + fragment_to_send.to_s
+					nextHop_socket.puts(passthrough_msg)
+					sleep( 0.1 * $max_pyld)
+				end
+				
+				start_byte = start_byte + ($max_pyld * 4)
 			end
 			
-			ary_of_fragments.each do | fragment_to_send |
-				passthrough_msg = type_to_send + " #{file} #{fpath} " fragment_to_send.to_s
-				#STDOUT.puts "Before sending:\n> " + passthrough_msg
-				nextHop_socket.puts(passthrough_msg)
-				sleep( 0.01 * $max_pyld)
-			end
 		end
 	
 	end
@@ -130,6 +139,9 @@
 			$id_to_fragment[frgmt_id] << frgmt
 		end
 		
+		# Defragment array of fragments.
+		# If file path exists, write file to path.
+		# Put success.
 		if ( ( segmentMsg = Segment.defragment( $id_to_fragment[frgmt_id], $id_to_fragment ) ) != nil )
 			if ( file_exists = File.exist?( fpath ))
 				IO.write(file, segmentMsg)
